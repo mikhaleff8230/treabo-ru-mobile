@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Proffi",
+    "slug": "proffi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "proffi",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f5f3ff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.sancan.proffi"
+    },
+    "android": {
+      "package": "ru.sancan.proffi",
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#f5f3ff"
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Proffi использует геолокацию для карты заказов рядом с вами."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Приложению нужен доступ к фото для смены аватара в профиле."
+        }
+      ],
+      "expo-asset",
+      "expo-font",
+      "expo-sqlite"
+    ]
+  }
+}
