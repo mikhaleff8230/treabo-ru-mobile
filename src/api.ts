@@ -2,7 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 /**
- * Базовый URL API без суффикса /api (например https://proffi.sancan.ru или http://192.168.0.5:8001).
+ * Базовый URL API без суффикса /api (например https://api.treabo.ru или http://192.168.0.5:8001).
  * Задаётся в .env: EXPO_PUBLIC_API_URL
  */
 export const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8001").replace(/\/+$/, "");
