@@ -17,7 +17,6 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "../src/api";
-import { fileUrl } from "../src/api";
 import { useAuth } from "../src/context/AuthContext";
 import { useLang } from "../src/context/LangContext";
 import { useChatStore } from "../src/store/chatStore";
@@ -30,38 +29,26 @@ import { PrimaryButton } from "../components/PrimaryButton";
 import { CardLight } from "../components/CardLight";
 import type { RootStackParamList } from "../src/navigation/types";
 import type { CategoryTileData } from "../components/CategoryTile";
+import type { Application, ApplicationPreview, Task } from "../src/types/proffi";
+import { resolveTaskPhotos } from "../src/utils/photos";
+import { formatResponseFeeMdl } from "../src/utils/currency";
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type R = RouteProp<RootStackParamList, "TaskDetail">;
 
-type TaskFull = {
-  id: string;
-  title: string;
-  description: string;
-  category: string | number;
-  city: string;
-  address?: string | null;
-  budget?: number | null;
-  deadline?: string | null;
-  status: string;
-  customer_id: string;
-  customer_name?: string;
-  created_at: string;
-  photos?: string[];
-  lat?: number | null;
-  lng?: number | null;
-  distance_km?: number | null;
+type AppRow = Application;
+
+type SpecInfo = {
+  has_applied?: boolean;
+  application_status?: string | null;
+  chat_id?: string | null;
+  rank?: number;
+  customer?: { id: string; name: string; last_seen?: string };
 };
 
-type AppRow = {
-  id: string;
-  specialist_id: string;
-  specialist_name: string;
-  specialist_city?: string | null;
-  message: string;
-  price?: number | null;
-  status: string;
-  chat_id?: string | null;
+type DetailRow = {
+  label: string;
+  value: string;
 };
 
 function yandexStaticMapUrl(lat: number, lng: number): string {
@@ -78,24 +65,84 @@ function yandexStaticMapUrl(lat: number, lng: number): string {
   return `https://static-maps.yandex.ru/v1?${params.toString()}`;
 }
 
+function stringifyDetailValue(value: unknown): string {
+  if (value == null) return "";
+  if (Array.isArray(value)) return value.filter(Boolean).map(String).join(", ");
+  if (typeof value === "object") return "";
+  return String(value).trim();
+}
+
+function parseDescriptionDetails(description: string): DetailRow[] {
+  const rows: DetailRow[] = [];
+  const lines = description.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  let inAnswers = false;
+
+  for (const line of lines) {
+    if (/^Уточнения:?$/i.test(line)) {
+      inAnswers = true;
+      continue;
+    }
+    if (/^(Запрос клиента|Кратко|Дополнительные пожелания):/i.test(line)) {
+      const [label, ...rest] = line.split(":");
+      const value = rest.join(":").trim();
+      if (value) rows.push({ label: label.trim(), value });
+      inAnswers = false;
+      continue;
+    }
+    if (inAnswers && line.includes(":")) {
+      const [label, ...rest] = line.split(":");
+      const value = rest.join(":").trim();
+      if (label.trim() && value) rows.push({ label: label.trim(), value });
+    }
+  }
+
+  return rows;
+}
+
+function rowsFromStructuredDetails(details: Record<string, unknown> | null | undefined): DetailRow[] {
+  if (!details) return [];
+  const rows: DetailRow[] = [];
+  const answers = details.question_answers;
+  const labels: Record<string, string> = {
+    city: "Город",
+    urgency: "Срок",
+    master_summary: "Кратко",
+    ai_description: "Описание AI",
+    additional_details: "Дополнительные пожелания",
+  };
+
+  if (Array.isArray(answers)) {
+    answers.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const record = item as Record<string, unknown>;
+      const label = stringifyDetailValue(record.question || record.label || record.key);
+      const value = stringifyDetailValue(record.answer || record.value);
+      if (label && value) rows.push({ label, value });
+    });
+  }
+
+  const skip = new Set(["question_answers", "prompt", "title", "category_id", "category_slug", "work_id"]);
+  Object.entries(details).forEach(([label, value]) => {
+    if (skip.has(label)) return;
+    const normalized = stringifyDetailValue(value);
+    if (normalized) rows.push({ label: labels[label] || label, value: normalized });
+  });
+
+  return rows;
+}
+
 export default function TaskDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
   const { taskId } = route.params;
   const { user } = useAuth();
   const { t, lang } = useLang();
-  const [task, setTask] = useState<TaskFull | null>(null);
+  const [task, setTask] = useState<Task | null>(null);
   const [categories, setCategories] = useState<CategoryTileData[]>([]);
   const [apps, setApps] = useState<AppRow[]>([]);
-  const [specInfo, setSpecInfo] = useState<{
-    has_applied?: boolean;
-    application_status?: string | null;
-    chat_id?: string | null;
-    rank?: number;
-    customer?: { id: string; name: string; last_seen?: string };
-  } | null>(null);
+  const [specInfo, setSpecInfo] = useState<SpecInfo | null>(null);
+  const [applyPreview, setApplyPreview] = useState<ApplicationPreview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [demo, setDemo] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showApply, setShowApply] = useState(false);
   const [applyMsg, setApplyMsg] = useState("");
@@ -107,8 +154,7 @@ export default function TaskDetailScreen() {
     setLoading(true);
     try {
       const data = await apiFetch(`/tasks/${taskId}`, { method: "GET" });
-      setTask(data as TaskFull);
-      setDemo(false);
+      setTask(data as Task);
       setLoadError(null);
       if (user?.role === "customer" && String(data.customer_id) === String(user.id)) {
         try {
@@ -123,12 +169,20 @@ export default function TaskDetailScreen() {
           const si = await apiFetch(`/tasks/${taskId}/specialist-info`, { method: "GET" });
           setSpecInfo(si);
         } catch {
-          setSpecInfo({ has_applied: false, rank: 1, customer: { id: "0", name: data.customer_name || "Клиент" } });
+          setSpecInfo(null);
         }
+        try {
+          const preview = await apiFetch(`/tasks/${taskId}/applications/preview`, { method: "GET" });
+          setApplyPreview(preview as ApplicationPreview);
+        } catch {
+          setApplyPreview(null);
+        }
+      } else {
+        setSpecInfo(null);
+        setApplyPreview(null);
       }
     } catch (e: unknown) {
       setTask(null);
-      setDemo(false);
       setLoadError(e instanceof Error ? e.message : String(e));
       setApps([]);
       setSpecInfo(null);
@@ -148,7 +202,18 @@ export default function TaskDetailScreen() {
     load();
   }, [load]);
 
-  const cat = task ? categories.find((c) => String(c.id) === String(task.category)) : null;
+  const cat = task ? categories.find((c) => String(c.id) === String(task.category_id || task.category)) : null;
+  const detailRows: DetailRow[] = task
+    ? [
+        cat ? { label: "Категория", value: cat.name_ru } : null,
+        task.city ? { label: "Город", value: task.city } : null,
+        task.work_title || task.work?.title || task.work?.name
+          ? { label: "Работа", value: String(task.work_title || task.work?.title || task.work?.name) }
+          : null,
+        ...rowsFromStructuredDetails(task.details || task.ai_answers || task.answers),
+        ...parseDescriptionDetails(task.description),
+      ].filter((row): row is DetailRow => Boolean(row && row.value))
+    : [];
   const isOwner = user?.role === "customer" && task && String(task.customer_id) === String(user.id);
   const isSpecialist = user?.role === "specialist";
   const hasApplied = specInfo?.has_applied;
@@ -160,18 +225,22 @@ export default function TaskDetailScreen() {
     navigation.navigate("ChatDetail", { chatId });
   };
 
+  const openApplyForm = async () => {
+    if (!applyPreview) {
+      try {
+        const preview = await apiFetch(`/tasks/${taskId}/applications/preview`, { method: "GET" });
+        setApplyPreview(preview as ApplicationPreview);
+      } catch {
+        /* preview optional */
+      }
+    }
+    navigation.navigate("TaskApply", { taskId, title: task?.title });
+  };
+
   const submitApplication = async () => {
     if (!applyMsg.trim()) return;
     setBusy(true);
     try {
-      if (demo) {
-        Alert.alert(t("success"), t("demo_apply_saved"));
-        setShowApply(false);
-        setApplyMsg("");
-        setApplyPrice("");
-        setSpecInfo((s) => ({ ...s, has_applied: true }));
-        return;
-      }
       const response = await apiFetch(`/tasks/${taskId}/applications`, {
         method: "POST",
         body: JSON.stringify({
@@ -199,10 +268,6 @@ export default function TaskDetailScreen() {
 
   const acceptApp = async (appId: string) => {
     try {
-      if (demo) {
-        Alert.alert(t("success"), t("demo_action"));
-        return;
-      }
       const response = await apiFetch(`/applications/${appId}/accept`, { method: "POST" });
       const chatId = response?.chat_id ? String(response.chat_id) : "";
       await loadChats();
@@ -225,10 +290,6 @@ export default function TaskDetailScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            if (demo) {
-              navigation.goBack();
-              return;
-            }
             await apiFetch(`/tasks/${taskId}`, { method: "DELETE" });
             navigation.goBack();
           } catch (e: unknown) {
@@ -251,7 +312,7 @@ export default function TaskDetailScreen() {
   if (!task) {
     return (
       <SafeAreaView style={styles.center} edges={["top", "bottom", "left", "right"]}>
-        <Text style={styles.errorTitle}>Ошибка</Text>
+        <Text style={styles.errorTitle}>{t("error_title")}</Text>
         <Text style={styles.errorText}>{loadError || t("no_tasks")}</Text>
         <PrimaryButton title={t("cancel")} fullWidth={false} style={styles.errorBtn} onPress={() => navigation.goBack()} />
       </SafeAreaView>
@@ -262,7 +323,7 @@ export default function TaskDetailScreen() {
   const statusVariant =
     task.status === "open" ? "default" : task.status === "in_progress" ? "warning" : task.status === "completed" ? "success" : "muted";
   const showFooter = isSpecialist && (task.status === "open" || !!chatId);
-  const photos = (task.photos || []).map((path) => fileUrl(path) || path).filter(Boolean);
+  const photos = resolveTaskPhotos(task.photos);
   const hasCoords = task.lat != null && task.lng != null;
 
   return (
@@ -282,12 +343,6 @@ export default function TaskDetailScreen() {
           )
         }
       />
-      {demo && (
-        <View style={styles.demoBanner}>
-          <Text style={styles.demoText}>{t("demo_data_banner")}</Text>
-        </View>
-      )}
-
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll}>
         <Text style={styles.h1}>{task.title}</Text>
 
@@ -349,14 +404,18 @@ export default function TaskDetailScreen() {
           <Text style={styles.desc}>{task.description}</Text>
         </CardLight>
 
+        {task.budget != null && task.budget > 0 && (
+          <View style={styles.budgetCard}>
+            <Text style={styles.budgetLabel}>Бюджет задания</Text>
+            <Text style={styles.budgetValue}>
+              до {Number(task.budget).toLocaleString("ru-RU")} {t("rub")}
+            </Text>
+          </View>
+        )}
+
         <CardLight style={styles.metaCard}>
           <View style={styles.badgeRow}>
             <Badge variant={statusVariant as "default" | "warning" | "success" | "muted"}>{t(task.status) || task.status}</Badge>
-            {task.budget != null && task.budget > 0 && (
-              <Badge>
-                {t("budget_upto")} {task.budget} {t("rub")}
-              </Badge>
-            )}
           </View>
           {cat && (
             <View style={styles.rowSm}>
@@ -374,11 +433,25 @@ export default function TaskDetailScreen() {
           </View>
         </CardLight>
 
+        {detailRows.length > 0 && (
+          <CardLight style={styles.detailsCard}>
+            <Text style={styles.h2}>Детали заявки</Text>
+            <View style={styles.detailsList}>
+              {detailRows.map((row, index) => (
+                <View key={`${row.label}-${index}`} style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{row.label}</Text>
+                  <Text style={styles.detailValue}>{row.value}</Text>
+                </View>
+              ))}
+            </View>
+          </CardLight>
+        )}
+
         {(task.address || task.city || hasCoords) && (
           <CardLight style={styles.mapCard}>
             <View style={styles.mapHead}>
               <Ionicons name="home-outline" size={18} color={colors.black} />
-              <Text style={styles.h2Small}>Адрес</Text>
+              <Text style={styles.h2Small}>{t("address_label")}</Text>
             </View>
             <Text style={styles.addressText}>
               {[task.city, task.address].filter(Boolean).join(", ")}
@@ -392,7 +465,7 @@ export default function TaskDetailScreen() {
             ) : (
               <View style={styles.mapPlaceholder}>
                 <Ionicons name="map-outline" size={28} color={colors.neutral400} />
-                <Text style={styles.mapPlaceholderText}>Координаты заказа пока не указаны</Text>
+                <Text style={styles.mapPlaceholderText}>{t("no_task_coords")}</Text>
               </View>
             )}
           </CardLight>
@@ -429,7 +502,7 @@ export default function TaskDetailScreen() {
                   )}
                   {a.status === "accepted" && a.chat_id && (
                     <PrimaryButton
-                      title="Написать в чат"
+                      title={t("open_chat")}
                       fullWidth={false}
                       style={styles.acceptBtn}
                       onPress={async () => {
@@ -450,6 +523,19 @@ export default function TaskDetailScreen() {
         {isSpecialist && showApply && (
           <View style={styles.applyBox}>
             <Text style={styles.h2}>{t("fits_question")}</Text>
+            {applyPreview && !applyPreview.has_applied && (
+              <Text style={styles.previewHint}>
+                {applyPreview.is_free
+                  ? t("response_preview_free").replace(
+                      "{n}",
+                      String(applyPreview.free_remaining_before ?? 0)
+                    )
+                  : t("response_preview_paid").replace(
+                      "{fee}",
+                      formatResponseFeeMdl(applyPreview.response_fee_mdl)
+                    )}
+              </Text>
+            )}
             <TextInput
               style={styles.textarea}
               placeholder={t("message_placeholder")}
@@ -473,14 +559,14 @@ export default function TaskDetailScreen() {
       {isSpecialist && (task.status === "open" || !!chatId) && (
         <BottomActionBar>
           {!!chatId && !showApply && (
-            <PrimaryButton title="Написать в чат" onPress={openExistingChat} />
+            <PrimaryButton title={t("open_chat")} onPress={openExistingChat} />
           )}
           {!hasApplied && !showApply && (
-            <PrimaryButton title={t("message_client")} onPress={() => setShowApply(true)} />
+            <PrimaryButton title={t("message_client")} onPress={openApplyForm} />
           )}
           {hasApplied && !chatId && !showApply && (
             <PrimaryButton
-              title={specInfo?.application_status === "accepted" ? "Чат создается" : "Отклик отправлен"}
+              title={specInfo?.application_status === "accepted" ? t("chat_creating") : t("application_sent")}
               onPress={() => {}}
               disabled
             />
@@ -511,8 +597,6 @@ const styles = StyleSheet.create({
   errorBtn: { paddingHorizontal: 24 },
   scrollFlex: { flex: 1 },
   scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
-  demoBanner: { paddingVertical: 8, backgroundColor: colors.lavender100 },
-  demoText: { textAlign: "center", fontSize: 12, color: colors.neutral600 },
   h1: { ...typography.title, fontSize: 26, marginBottom: 16, lineHeight: 32 },
   h2: { ...typography.headline, fontSize: 18, marginBottom: 8 },
   h2Small: { ...typography.headline, fontSize: 16 },
@@ -564,7 +648,26 @@ const styles = StyleSheet.create({
   custSub: { fontSize: 12, color: colors.neutral400 },
   desc: { fontSize: 16, color: colors.neutral700, lineHeight: 24 },
   sectionCard: { backgroundColor: colors.white, marginBottom: 16 },
+  budgetCard: {
+    borderRadius: 24,
+    backgroundColor: "#D9F36B",
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+  },
+  budgetLabel: { fontSize: 13, fontWeight: "700", color: colors.neutral700, marginBottom: 6 },
+  budgetValue: { fontSize: 28, lineHeight: 34, fontWeight: "800", color: colors.black },
   metaCard: { backgroundColor: colors.lavender50, borderWidth: 0, gap: 8, marginBottom: 16 },
+  detailsCard: { backgroundColor: colors.white, marginBottom: 16 },
+  detailsList: { gap: 10 },
+  detailRow: {
+    borderRadius: 16,
+    backgroundColor: colors.lavender50,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  detailLabel: { fontSize: 12, fontWeight: "700", color: colors.neutral500, marginBottom: 4 },
+  detailValue: { fontSize: 15, lineHeight: 21, color: colors.black },
   mapCard: { backgroundColor: colors.white, marginBottom: 16, gap: 10 },
   mapHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   addressText: { fontSize: 14, color: colors.neutral700, lineHeight: 20 },
@@ -590,6 +693,7 @@ const styles = StyleSheet.create({
   price: { fontWeight: "800", fontSize: 16 },
   acceptBtn: { minWidth: 120, paddingHorizontal: 16 },
   applyBox: { marginTop: 12, gap: 8 },
+  previewHint: { fontSize: 13, color: colors.neutral600, marginBottom: 4 },
   textarea: {
     minHeight: 100,
     backgroundColor: colors.lavender50,

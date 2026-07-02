@@ -7,27 +7,43 @@ import { Platform } from "react-native";
  */
 export const API_BASE = (process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8001").replace(/\/+$/, "");
 
-/** Публичный URL файла с бэкенда (как на веб: /api/files/...) */
-export function fileUrl(path: string | null | undefined): string | null {
-  if (!path) return null;
-  if (path.startsWith("http") || path.startsWith("blob:")) return path;
-  return `${API_BASE}/api/files/${path}`;
+export type ApiNamespace = "proffi" | "root";
+
+function resolveApiUrl(path: string, namespace: ApiNamespace = "proffi"): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (namespace === "root") return `${API_BASE}/api${normalized}`;
+  return `${API_BASE}/api/proffi${normalized}`;
 }
 
-/** Multipart загрузка (аватар и т.п.) */
-export async function apiUploadFile(uri: string, mime = "image/jpeg", filename = "upload.jpg"): Promise<{ path: string }> {
+/** Публичный URL файла с бэкенда Proffi */
+export function fileUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (path.startsWith("blob:")) return path;
+  if (path.startsWith("http")) {
+    return path.replace("https://treabo.ru/api/files/", "https://api.treabo.ru/api/proffi/files/");
+  }
+  if (path.startsWith("/api/proffi/files/")) return `${API_BASE}${path}`;
+  if (path.startsWith("/api/files/")) return `${API_BASE}/api/proffi/files/${path.replace(/^\/api\/files\/?/, "")}`;
+  return `${API_BASE}/api/proffi/files/${path.replace(/^\/+/, "")}`;
+}
+
+/** Multipart загрузка (аватар, фото задания и т.п.) */
+export async function apiUploadFile(uri: string, mime = "image/jpeg", filename = "upload.jpg"): Promise<{ path: string; url?: string; mime?: string | null; size?: number | null }> {
   const token = await getToken();
+  if (!token) {
+    throw new Error("Нужно войти в аккаунт");
+  }
   const form = new FormData();
   form.append("file", { uri, name: filename, type: mime } as any);
   const headers: HeadersInit = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/api/uploads`, { method: "POST", headers, body: form });
+  const res = await fetch(resolveApiUrl("/uploads"), { method: "POST", headers, body: form });
   const text = await res.text();
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(htmlErrorMessage(text, res.status));
   }
   if (!res.ok) {
     const msg = errorMessage(data, res.status);
@@ -67,9 +83,9 @@ export async function setToken(token: string | null): Promise<void> {
 
 export async function apiFetch(
   path: string,
-  options: RequestInit & { auth?: boolean } = {}
+  options: RequestInit & { auth?: boolean; namespace?: ApiNamespace } = {}
 ): Promise<any> {
-  const { auth = true, ...fetchOpts } = options;
+  const { auth = true, namespace = "proffi", ...fetchOpts } = options;
   const headers = new Headers(fetchOpts.headers);
   if (fetchOpts.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -78,18 +94,28 @@ export async function apiFetch(
     const token = await getToken();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
-  const res = await fetch(`${API_BASE}/api${path}`, { ...fetchOpts, headers });
+  const res = await fetch(resolveApiUrl(path, namespace), { ...fetchOpts, headers });
   const text = await res.text();
   let data: any = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(htmlErrorMessage(text, res.status));
   }
   if (!res.ok) {
     throw new Error(errorMessage(data, res.status));
   }
   return data;
+}
+
+function htmlErrorMessage(text: string, status: number): string {
+  if (/<html[\s>]/i.test(text) || /<!doctype html/i.test(text)) {
+    return status >= 500
+      ? "Сервер вернул ошибку. Проверьте API/миграции и повторите."
+      : `Ошибка API HTTP ${status}`;
+  }
+  const clean = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return clean || `HTTP ${status}`;
 }
 
 function errorMessage(data: any, status: number): string {

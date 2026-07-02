@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Proffi",
-    "slug": "proffi",
+    "name": "Treabo",
+    "slug": "treabo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "proffi",
+    "scheme": "treabo",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#f5f3ff"
+      "backgroundColor": "#F5F6F1"
     },
     "ios": {
       "supportsTablet": true,
@@ -18,20 +18,20 @@
       "package": "ru.sancan.proffi",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#f5f3ff"
+        "backgroundColor": "#F5F6F1"
       }
     },
     "plugins": [
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Proffi использует геолокацию для карты заказов рядом с вами."
+          "locationWhenInUsePermission": "Treabo использует геолокацию, чтобы показывать задания рядом с вами."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Приложению нужен доступ к фото для смены аватара в профиле."
+          "photosPermission": "Treabo нужен доступ к фото для аватара, портфолио и файлов в заданиях."
         }
       ],
       "expo-asset",

@@ -18,6 +18,7 @@ import { apiFetch, apiUploadFile, fileUrl } from "../src/api";
 import { useAuth, type User } from "../src/context/AuthContext";
 import { useLang } from "../src/context/LangContext";
 import { colors, radii, spacing, typography } from "../src/theme";
+import { fetchAccountSummary, type AccountSummary } from "../src/services/account";
 
 import { PrimaryButton } from "../components/PrimaryButton";
 import { CardLight } from "../components/CardLight";
@@ -37,12 +38,14 @@ export default function ProfileScreen() {
   const { user, setUser, logout } = useAuth();
   const { t } = useLang();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [account, setAccount] = useState<AccountSummary | null>(null);
   const [editingBio, setEditingBio] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [bio, setBio] = useState("");
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [services, setServices] = useState("");
+  const [portfolio, setPortfolio] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -50,6 +53,7 @@ export default function ProfileScreen() {
     apiFetch("/auth/stats", { method: "GET" })
       .then(setStats)
       .catch(() => setStats(null));
+    fetchAccountSummary().then(setAccount).catch(() => setAccount(null));
   }, []);
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export default function ProfileScreen() {
       setName(user.name || "");
       setCity(user.city || "");
       setServices((user.services || []).join(", "));
+      setPortfolio(user.portfolio || []);
     }
   }, [user]);
 
@@ -138,6 +143,41 @@ export default function ProfileScreen() {
       setUploading(false);
     }
   }, [setUser, t]);
+
+  const pickPortfolio = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Доступ", "Нужно разрешение на фото");
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsMultipleSelection: true,
+      selectionLimit: Math.max(1, 10 - portfolio.length),
+    });
+    if (res.canceled || !res.assets.length) return;
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const asset of res.assets.slice(0, Math.max(0, 10 - portfolio.length))) {
+        const upload = await apiUploadFile(asset.uri, asset.mimeType || "image/jpeg", "portfolio.jpg");
+        uploaded.push(upload.path);
+      }
+      const nextPortfolio = [...portfolio, ...uploaded].slice(0, 10);
+      const data = await apiFetch("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify({ portfolio: nextPortfolio }),
+      });
+      setUser(data as User);
+      setPortfolio(nextPortfolio);
+      Alert.alert(t("success"));
+    } catch (e: unknown) {
+      Alert.alert("Ошибка", e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploading(false);
+    }
+  }, [portfolio, setUser, t]);
 
   if (!user) return null;
 
@@ -244,6 +284,19 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {isSpecialist && (
+          <CardLight style={styles.balanceCard}>
+            <View>
+              <Text style={styles.balanceLabel}>Баланс</Text>
+              <Text style={styles.balanceValue}>{Math.round(account?.balance ?? 0).toLocaleString("ru-RU")} ₽</Text>
+            </View>
+            <View style={styles.freePill}>
+              <Text style={styles.freePillValue}>{account?.free_remaining_today ?? 0}</Text>
+              <Text style={styles.freePillText}>откликов</Text>
+            </View>
+          </CardLight>
+        )}
+
         <CardLight style={styles.statsCard}>
           <View style={styles.statsRow}>
             <Text style={styles.statsTitle}>{t("my_statistics")}</Text>
@@ -304,6 +357,27 @@ export default function ProfileScreen() {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {isSpecialist && (
+          <View style={styles.services}>
+            <View style={styles.portfolioHead}>
+              <Text style={styles.sectionTitle}>Портфолио</Text>
+              <TouchableOpacity style={styles.addPortfolioBtn} onPress={pickPortfolio} disabled={uploading || portfolio.length >= 10}>
+                <Ionicons name="add" size={18} color={colors.black} />
+              </TouchableOpacity>
+            </View>
+            {portfolio.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.portfolioTrack}>
+                {portfolio.map((item, index) => {
+                  const uri = fileUrl(item);
+                  return uri ? <Image key={`${item}-${index}`} source={{ uri }} style={styles.portfolioImage} /> : null;
+                })}
+              </ScrollView>
+            ) : (
+              <Text style={styles.bioText}>Добавьте фотографии работ</Text>
+            )}
           </View>
         )}
 
@@ -391,6 +465,19 @@ const styles = StyleSheet.create({
   },
   verifiedText: { fontSize: 14, fontWeight: "600" },
   statsCard: { backgroundColor: colors.lavender50, borderWidth: 0, marginBottom: 16 },
+  balanceCard: {
+    backgroundColor: "#D9F36B",
+    borderWidth: 0,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  balanceLabel: { fontSize: 12, fontWeight: "700", color: colors.neutral700, marginBottom: 4 },
+  balanceValue: { fontSize: 26, fontWeight: "800", color: colors.black },
+  freePill: { borderRadius: 18, backgroundColor: colors.white, paddingHorizontal: 12, paddingVertical: 8, alignItems: "center" },
+  freePillValue: { fontSize: 18, fontWeight: "800", color: colors.black },
+  freePillText: { fontSize: 11, color: colors.neutral500 },
   statsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   statsTitle: { fontSize: 18, fontWeight: "800" },
   statsGrid: { flexDirection: "row", gap: 12, marginBottom: 24 },
@@ -417,6 +504,10 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { backgroundColor: colors.lavender100, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radii.full },
   chipText: { fontSize: 14, fontWeight: "600" },
+  portfolioHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  addPortfolioBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.lavender50, alignItems: "center", justifyContent: "center" },
+  portfolioTrack: { gap: 10 },
+  portfolioImage: { width: 104, height: 104, borderRadius: 16, backgroundColor: colors.lavender50 },
   footerMeta: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.neutral100 },
   footerText: { fontSize: 14, color: colors.neutral500 },
   dot: { color: colors.neutral500 },
