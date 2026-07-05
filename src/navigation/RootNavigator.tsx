@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
+import { TreaboLogo } from "../../components/TreaboLogo";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { NavigationContainer, DefaultTheme, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -25,6 +26,9 @@ import TaskApplyScreen from "../../screens/TaskApplyScreen";
 import CreateTaskScreen from "../../screens/CreateTaskScreen";
 import ChatDetailScreen from "../../screens/ChatDetailScreen";
 import SpecialistProfileScreen from "../../screens/SpecialistProfileScreen";
+import PhoneChangeScreen from "../../screens/PhoneChangeScreen";
+import IdentityVerificationScreen from "../../screens/IdentityVerificationScreen";
+import MyReviewsScreen from "../../screens/MyReviewsScreen";
 import type { AuthStackParamList, MainTabParamList, RootStackParamList } from "./types";
 import { getTabBarStyle } from "./tabBar";
 import { fetchAccountSummary, type AccountSummary } from "../services/account";
@@ -117,17 +121,44 @@ function LoggedInStack() {
       <AppStackNav.Screen name="CreateTask" component={CreateTaskScreen} />
       <AppStackNav.Screen name="ChatDetail" component={ChatDetailScreen} />
       <AppStackNav.Screen name="SpecialistProfile" component={SpecialistProfileScreen} />
+      <AppStackNav.Screen name="PhoneChange" component={PhoneChangeScreen} />
+      <AppStackNav.Screen name="IdentityVerification" component={IdentityVerificationScreen} />
+      <AppStackNav.Screen name="MyReviews" component={MyReviewsScreen} />
     </AppStackNav.Navigator>
   );
 }
 
 export function RootNavigator() {
   const { user, loading } = useAuth();
+  const [introVisible, setIntroVisible] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(0)).current;
+  const splashScale = useRef(new Animated.Value(0.96)).current;
 
-  if (loading) {
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(splashOpacity, {
+        toValue: 1,
+        duration: 520,
+        useNativeDriver: true,
+      }),
+      Animated.spring(splashScale, {
+        toValue: 1,
+        tension: 42,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const timer = setTimeout(() => setIntroVisible(false), 1200);
+    return () => clearTimeout(timer);
+  }, [splashOpacity, splashScale]);
+
+  if (loading || introVisible) {
     return (
       <SafeAreaView style={styles.splash} edges={["top", "bottom", "left", "right"]}>
-        <ActivityIndicator size="large" color={colors.black} />
+        <Animated.View style={{ opacity: splashOpacity, transform: [{ scale: splashScale }] }}>
+          <TreaboLogo size="splash" />
+        </Animated.View>
       </SafeAreaView>
     );
   }
@@ -148,7 +179,7 @@ export function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
-  splash: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.shell },
+  splash: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.white },
   walletIconWrap: { alignItems: "center", justifyContent: "center", minWidth: 46 },
   walletBalance: { fontSize: 9, fontWeight: "700", color: colors.black, marginTop: -2 },
   freeBadge: {

@@ -6,19 +6,24 @@
     "orientation": "portrait",
     "scheme": "treabo",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/treabo-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F5F6F1"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ru.sancan.proffi"
+      "bundleIdentifier": "ru.sancan.proffi",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "ru.sancan.proffi",
+      "versionCode": 3,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#F5F6F1"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
       }
     },
     "plugins": [

@@ -9,21 +9,30 @@ type Props = {
   isMine: boolean;
 };
 
+function messageAttachmentUrl(message: Message): string | null {
+  const meta = message.metadata || {};
+  return fileUrl(meta.url || meta.path || meta.original);
+}
+
 export function MessageBubble({ message, isMine }: Props) {
   const time = new Date(message.created_at).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const attachmentUrl = fileUrl(typeof message.metadata?.url === "string" ? message.metadata.url : null);
-  const body = message.type === "file" ? message.metadata?.name || message.text || "Файл" : message.text || "Фото";
+  const attachmentUrl = messageAttachmentUrl(message);
+  const isImage = message.type === "image" || Boolean(attachmentUrl && /\.(jpe?g|png|gif|webp)(\?|$)/i.test(attachmentUrl));
+  const body = message.type === "file" ? message.metadata?.name || message.text || "Файл" : message.text;
 
   return (
     <View style={[styles.row, isMine ? styles.rowMine : styles.rowOther]}>
       <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
-        {message.type === "image" && attachmentUrl ? (
+        {isImage && attachmentUrl ? (
           <Image source={{ uri: attachmentUrl }} style={styles.image} resizeMode="cover" />
         ) : null}
-        <Text style={[styles.text, isMine && styles.textMine]}>{body}</Text>
+        {body ? <Text style={[styles.text, isMine && styles.textMine]}>{body}</Text> : null}
+        {!attachmentUrl && message.type === "image" ? (
+          <Text style={[styles.text, isMine && styles.textMine]}>Фото недоступно</Text>
+        ) : null}
         <Text style={[styles.time, isMine && styles.timeMine]}>
           {isMine ? (message.read_at ? "✓✓ " : "✓ ") : ""}
           {time}

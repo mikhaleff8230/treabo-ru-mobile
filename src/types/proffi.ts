@@ -15,6 +15,10 @@ export type Task = {
   city: string;
   address?: string | null;
   budget?: number | null;
+  budget_type?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  budget_label?: string | null;
   response_price_mdl?: number | null;
   deadline?: string | null;
   status: string;
@@ -44,6 +48,10 @@ export type Specialist = {
   lat?: number | null;
   lng?: number | null;
   last_seen?: string | null;
+  last_seen_label?: string | null;
+  is_online?: boolean | null;
+  passport_verified?: boolean | null;
+  identity_status?: string | null;
   created_at?: string | null;
   email?: string | null;
   is_verified?: boolean | null;
@@ -52,6 +60,10 @@ export type Specialist = {
 export type SpecialistReview = {
   id: string;
   rating: number;
+  comment?: string | null;
+  customer_name?: string | null;
+  task_title?: string | null;
+  photos?: string[];
   text?: string | null;
   author_name?: string | null;
   created_at?: string | null;

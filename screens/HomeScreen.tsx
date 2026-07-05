@@ -1,18 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Ionicons } from "@expo/vector-icons";
 import { TabScreenLayout } from "../components/TabScreenLayout";
-import { PrimaryButton } from "../components/PrimaryButton";
 import { TaskCardRow, type TaskItem } from "../components/TaskCardRow";
+import { CategoryTile, type CategoryTileData } from "../components/CategoryTile";
 import { apiFetch } from "../src/api";
-import { useAuth } from "../src/context/AuthContext";
-import { useLang } from "../src/context/LangContext";
 import { colors, spacing } from "../src/theme";
-import type { CategoryTileData } from "../components/CategoryTile";
 import type { MainTabParamList, RootStackParamList } from "../src/navigation/types";
 
 type Nav = CompositeNavigationProp<
@@ -20,17 +17,10 @@ type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-const PROMOS = [
-  { title: "Про новую жизнь", color: "#394150" },
-  { title: "Время силы", color: "#D7A948" },
-  { title: "Бонусы в Директе", color: "#4B67D9" },
-  { title: "Почти отлично", color: "#7A95C7" },
-];
+const TELEGRAM_URL = "https://t.me/+IKp5Qdq27MU3NGIy";
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
-  const { user } = useAuth();
-  const { t } = useLang();
   const [categories, setCategories] = useState<CategoryTileData[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,14 +58,16 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.promoTrack}>
-          {PROMOS.map((item) => (
-            <TouchableOpacity key={item.title} style={[styles.promoCard, { backgroundColor: item.color }]}>
-              <View style={styles.promoDot} />
-              <Text style={styles.promoText}>{item.title}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <TouchableOpacity style={styles.telegramBanner} onPress={() => void Linking.openURL(TELEGRAM_URL)} activeOpacity={0.9}>
+          <View style={styles.telegramIcon}>
+            <Ionicons name="paper-plane" size={20} color={colors.white} />
+          </View>
+          <View style={styles.telegramText}>
+            <Text style={styles.telegramTitle}>Telegram-группа мастеров</Text>
+            <Text style={styles.telegramSub}>Новости, советы и общение по заказам Treabo</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.neutral400} />
+        </TouchableOpacity>
 
         <View style={styles.searchRow}>
           <TouchableOpacity style={styles.searchFake} onPress={() => navigation.navigate("TaskSearch")}>
@@ -87,14 +79,25 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {user?.role === "customer" && (
-          <PrimaryButton title={t("create_task")} onPress={() => navigation.navigate("CreateTask")} style={styles.createBtn} />
+        {categories.length > 0 && (
+          <View style={styles.categories}>
+            <Text style={styles.sectionTitle}>Категории</Text>
+            <View style={styles.categoryGrid}>
+              {categories.slice(0, 8).map((cat) => (
+                <CategoryTile
+                  key={String(cat.id)}
+                  cat={cat}
+                  onPress={() => navigation.navigate("TasksList", { category_id: String(cat.id) })}
+                />
+              ))}
+            </View>
+          </View>
         )}
 
         {loading ? (
           <ActivityIndicator style={styles.loader} color={colors.neutral400} />
         ) : tasks.length === 0 ? (
-          <Text style={styles.empty}>{t("no_tasks")}</Text>
+          <Text style={styles.empty}>Пока нет подходящих заказов</Text>
         ) : (
           <View style={styles.taskList}>
             {tasks.map((task) => (
@@ -114,7 +117,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.lavender50 },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: 32 },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: 96 },
   segment: {
     flexDirection: "row",
     alignSelf: "flex-start",
@@ -128,10 +131,28 @@ const styles = StyleSheet.create({
   segmentOff: { borderRadius: 11, paddingHorizontal: 18, paddingVertical: 8 },
   segmentOnText: { fontSize: 13, fontWeight: "700", color: colors.black },
   segmentOffText: { fontSize: 13, fontWeight: "700", color: colors.neutral500 },
-  promoTrack: { gap: 8, paddingBottom: spacing.md },
-  promoCard: { width: 72, height: 72, borderRadius: 14, padding: 8, justifyContent: "flex-end" },
-  promoText: { color: colors.white, fontSize: 10, fontWeight: "800", lineHeight: 12 },
-  promoDot: { position: "absolute", top: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: "#EF3856" },
+  telegramBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral100,
+  },
+  telegramIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: "#229ED9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  telegramText: { flex: 1 },
+  telegramTitle: { fontSize: 15, fontWeight: "800", color: colors.black },
+  telegramSub: { fontSize: 12, color: colors.neutral500, marginTop: 2, lineHeight: 17 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: spacing.md },
   searchFake: {
     flex: 1,
@@ -145,7 +166,9 @@ const styles = StyleSheet.create({
   },
   searchText: { fontSize: 14, color: colors.neutral500 },
   filterBtn: { width: 48, height: 48, borderRadius: 12, backgroundColor: colors.white, alignItems: "center", justifyContent: "center" },
-  createBtn: { marginBottom: spacing.md },
+  categories: { marginBottom: spacing.md },
+  sectionTitle: { fontSize: 16, fontWeight: "800", color: colors.black, marginBottom: spacing.sm },
+  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
   taskList: { gap: 12 },
   loader: { marginVertical: 24 },
   empty: { textAlign: "center", color: colors.neutral400, paddingVertical: 24, fontSize: 14 },

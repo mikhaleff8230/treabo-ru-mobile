@@ -27,6 +27,9 @@ export type RootStackParamList = {
   CreateTask: undefined;
   ChatDetail: { chatId: string };
   SpecialistProfile: { specialistId: string };
+  PhoneChange: undefined;
+  IdentityVerification: undefined;
+  MyReviews: undefined;
 };
 
 export type MainTabParamList = {
@@ -38,6 +41,6 @@ export type MainTabParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  PhoneEntry: { role: "customer" | "specialist" };
+  PhoneEntry: { role?: "customer" | "specialist" };
   Login: undefined;
 };

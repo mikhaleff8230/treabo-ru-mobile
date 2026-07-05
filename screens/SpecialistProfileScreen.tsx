@@ -103,9 +103,14 @@ export default function SpecialistProfileScreen() {
               {spec.reviews_count ?? 0} {t("reviews")}
             </Text>
           </View>
-          {spec.last_seen ? (
-            <Text style={styles.lastSeen}>
-              {t("last_seen")}: {timeAgo(spec.last_seen, lang)}
+          {spec.last_seen_label || spec.last_seen ? (
+            <Text
+              style={[
+                styles.lastSeen,
+                (spec.is_online || spec.last_seen_label?.startsWith("Сейчас")) && styles.lastSeenOnline,
+              ]}
+            >
+              {spec.last_seen_label || `${t("last_seen")}: ${timeAgo(spec.last_seen!, lang)}`}
             </Text>
           ) : null}
         </View>
@@ -154,10 +159,19 @@ export default function SpecialistProfileScreen() {
             {reviews.map((review) => (
               <View key={String(review.id)} style={styles.reviewCard}>
                 <View style={styles.reviewHead}>
-                  <Text style={styles.reviewAuthor}>{review.author_name || "Клиент"}</Text>
+                  <Text style={styles.reviewAuthor}>{review.customer_name || review.author_name || "Клиент"}</Text>
                   <Text style={styles.reviewRating}>{review.rating} ★</Text>
                 </View>
-                {review.text ? <Text style={styles.body}>{review.text}</Text> : null}
+                {review.comment || review.text ? <Text style={styles.body}>{review.comment || review.text}</Text> : null}
+                {!!review.photos?.length && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewPhotos}>
+                    {review.photos.map((photo, index) => {
+                      const uri = fileUrl(photo);
+                      if (!uri) return null;
+                      return <Image key={`${review.id}-${index}`} source={{ uri }} style={styles.reviewPhoto} />;
+                    })}
+                  </ScrollView>
+                )}
                 {review.created_at ? (
                   <Text style={styles.reviewDate}>{timeAgo(review.created_at, lang)}</Text>
                 ) : null}
@@ -194,6 +208,7 @@ const styles = StyleSheet.create({
   ratingNum: { fontWeight: "800", fontSize: 16 },
   reviews: { fontSize: 14, color: colors.neutral500 },
   lastSeen: { marginTop: 8, fontSize: 13, color: colors.neutral500 },
+  lastSeenOnline: { color: colors.emerald, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   rowText: { fontSize: 15 },
   block: { marginBottom: 20 },
@@ -214,5 +229,7 @@ const styles = StyleSheet.create({
   reviewHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   reviewAuthor: { fontWeight: "700" },
   reviewRating: { fontWeight: "700" },
+  reviewPhotos: { marginTop: spacing.xs },
+  reviewPhoto: { width: 72, height: 72, borderRadius: 12, marginRight: spacing.sm },
   reviewDate: { fontSize: 12, color: colors.neutral400 },
 });

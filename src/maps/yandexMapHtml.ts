@@ -31,6 +31,21 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, "&#039;");
 }
 
+function stripHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function yandexMapsApiKey(): string {
   return process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY || "";
 }
@@ -60,19 +75,21 @@ export function buildYandexMapShellHtml(apiKey: string): string {
       .plaque {
         background: #232323;
         color: #fff;
-        padding: 10px 12px;
-        border-radius: 14px;
+        padding: 7px 9px;
+        border-radius: 10px;
         cursor: pointer;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.28);
-        max-width: 220px;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+        max-width: 176px;
         font-family: inherit;
+        font-size: 11px;
+        font-weight: 400;
       }
-      .plaque.active { outline: 2px solid #D9F36B; outline-offset: 2px; }
-      .plaque-photo { width: 100%; height: 64px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; display: block; }
-      .plaque-price { font-size: 12px; font-weight: 700; white-space: nowrap; }
-      .plaque-title { font-size: 12px; font-weight: 800; margin-top: 4px; line-height: 1.35; }
-      .plaque-location { font-size: 11px; margin-top: 4px; line-height: 1.35; opacity: 0.9; }
-      .plaque-cta { font-size: 10px; margin-top: 6px; opacity: 0.75; }
+      .plaque.active { outline: 1px solid #D9F36B; outline-offset: 2px; }
+      .plaque-photo { width: 100%; height: 46px; object-fit: cover; border-radius: 7px; margin-bottom: 6px; display: block; }
+      .plaque-price { font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .plaque-title { font-size: 11px; font-weight: 500; margin-top: 3px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .plaque-location { font-size: 10px; font-weight: 400; margin-top: 3px; line-height: 1.25; opacity: 0.78; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .plaque-cta { font-size: 10px; font-weight: 400; margin-top: 4px; opacity: 0.65; }
     </style>
     <script src="${scriptSrc}"></script>
   </head>
@@ -214,6 +231,10 @@ export function toYandexPoints<T extends {
   title: string;
   description?: string | null;
   budget?: number | null;
+  budget_type?: string | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  budget_label?: string | null;
   city?: string | null;
   address?: string | null;
   category?: string | number | null;
@@ -242,15 +263,21 @@ export function toYandexPoints<T extends {
         photoUrl = fileUrlFn(firstPhoto.path);
       }
 
-      const priceLabel =
-        task.budget != null && task.budget > 0
-          ? `от ${new Intl.NumberFormat("ru-RU").format(task.budget)} ₽`
-          : "Цена договорная";
+      let priceLabel = task.budget_label || "Цена договорная";
+      if (!task.budget_label && task.budget_type === "range") {
+        const min = task.budget_min != null ? Number(task.budget_min) : null;
+        const max = task.budget_max != null ? Number(task.budget_max) : null;
+        if (min != null && max != null) priceLabel = `от ${new Intl.NumberFormat("ru-RU").format(min)} до ${new Intl.NumberFormat("ru-RU").format(max)} ₽`;
+        else if (min != null) priceLabel = `от ${new Intl.NumberFormat("ru-RU").format(min)} ₽`;
+        else if (max != null) priceLabel = `до ${new Intl.NumberFormat("ru-RU").format(max)} ₽`;
+      } else if (!task.budget_label && task.budget != null && task.budget > 0) {
+        priceLabel = `от ${new Intl.NumberFormat("ru-RU").format(task.budget)} ₽`;
+      }
 
       return {
         id: String(task.id),
-        title: task.title,
-        description: task.description,
+        title: stripHtml(task.title),
+        description: stripHtml(task.description),
         price: priceLabel,
         priceLabel,
         city: task.city,
