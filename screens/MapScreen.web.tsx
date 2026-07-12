@@ -138,10 +138,17 @@ export default function MapScreenWeb() {
           const emitBounds = () => {
             if (!mapRef.current) return;
             const b = mapRef.current.getBounds();
-            setBounds(parseMapBounds({ southWest: b[0], northEast: b[1] }));
+            const next = parseMapBounds({ southWest: b[0], northEast: b[1] });
+            if (next) setBounds((current) => {
+              if (current && Math.abs(current.sw_lat - next.sw_lat) < 0.00001 &&
+                Math.abs(current.sw_lng - next.sw_lng) < 0.00001 &&
+                Math.abs(current.ne_lat - next.ne_lat) < 0.00001 &&
+                Math.abs(current.ne_lng - next.ne_lng) < 0.00001) return current;
+              return next;
+            });
           };
           mapRef.current.events.add("actionend", emitBounds);
-          mapRef.current.events.add("boundschange", emitBounds);
+          mapRef.current.events.add("actionend", emitBounds);
           emitBounds();
           setMapReady(true);
         }

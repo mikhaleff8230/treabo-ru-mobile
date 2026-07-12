@@ -129,7 +129,13 @@ export default function MapScreen() {
       if (message.type === "ready") setWebviewReady(true);
       if (message.type === "boundschange") {
         const next = parseMapBounds(message.payload || {});
-        if (next) setBounds(next);
+        if (next) setBounds((current) => {
+          if (current && Math.abs(current.sw_lat - next.sw_lat) < 0.00001 &&
+            Math.abs(current.sw_lng - next.sw_lng) < 0.00001 &&
+            Math.abs(current.ne_lat - next.ne_lat) < 0.00001 &&
+            Math.abs(current.ne_lng - next.ne_lng) < 0.00001) return current;
+          return next;
+        });
       }
       if (message.type === "select" && message.payload?.id != null) {
         setSelectedId(String(message.payload.id));

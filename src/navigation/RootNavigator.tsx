@@ -164,7 +164,13 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer
+      theme={navTheme}
+      linking={{
+        prefixes: ["treabo://"],
+        config: { screens: { ChatDetail: "chat/:chatId" } },
+      }}
+    >
       {user ? (
         <LoggedInStack />
       ) : (

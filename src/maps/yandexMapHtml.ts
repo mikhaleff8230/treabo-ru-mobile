@@ -164,8 +164,10 @@ export function buildYandexMapShellHtml(apiKey: string): string {
               if (!self.map) return;
               post('boundschange', readBounds(self.map));
             };
+            // actionend fires once after pan/zoom. Listening to boundschange as
+            // well produced an event loop in React Native while the map was
+            // fitting clusters and resizing its viewport.
             self.map.events.add('actionend', emitBounds);
-            self.map.events.add('boundschange', emitBounds);
             self.clusterer.events.add('click', function (event) {
               var target = event.get('target');
               if (!target || typeof target.getGeoObjects !== 'function') return;
@@ -230,7 +232,8 @@ export function buildYandexMapShellHtml(apiKey: string): string {
             if (bounds) self.map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 48 });
             self.didFitBounds = true;
           }
-          if (self.map) self.map.container.fitToViewport();
+          // Do not fit the viewport on every React points update: it emits map
+          // bounds events and used to recreate the same black marker forever.
         },
         setCenter: function (lat, lng, zoom) {
           if (!this.map) return;
