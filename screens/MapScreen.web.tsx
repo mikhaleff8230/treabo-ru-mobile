@@ -57,6 +57,7 @@ export default function MapScreenWeb() {
   const { t } = useLang();
   const mapNodeRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
+  const clustererRef = useRef<any>(null);
   const placemarksRef = useRef<Map<string, any>>(new Map());
   const listRef = useRef<FlatList<TaskWithGeo>>(null);
   const [tasks, setTasks] = useState<TaskWithGeo[]>([]);
@@ -154,17 +155,24 @@ export default function MapScreenWeb() {
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !window.ymaps) return;
-    placemarksRef.current.forEach((pm) => mapRef.current.geoObjects.remove(pm));
+    if (clustererRef.current) mapRef.current.geoObjects.remove(clustererRef.current);
     placemarksRef.current.clear();
 
     const layout = window.ymaps.templateLayoutFactory.createClass(
-      `<div style="background:#232323;color:#fff;padding:10px 12px;border-radius:14px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.28);max-width:220px;font-family:inherit;{{ properties.active ? 'outline:2px solid #D9F36B;outline-offset:2px;' : '' }}">
-        {{ properties.photoUrl ? '<img src="' + properties.photoUrl + '" style="width:100%;height:64px;object-fit:cover;border-radius:8px;margin-bottom:8px;" />' : '' }}
+      `<div style="box-sizing:border-box;width:148px;min-height:46px;background:#232323;color:#fff;padding:7px 9px;border-radius:10px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,0.18);font-family:inherit;{{ properties.active ? 'outline:2px solid #D9F36B;outline-offset:2px;' : '' }}">
         <div style="font-size:12px;font-weight:700;white-space:nowrap;">{{ properties.priceLabel }}</div>
-        <div style="font-size:12px;font-weight:800;margin-top:4px;line-height:1.35;">{{ properties.title }}</div>
-        {{ properties.location ? '<div style="font-size:11px;margin-top:4px;line-height:1.35;opacity:0.9;">' + properties.location + '</div>' : '' }}
+        <div style="font-size:11px;font-weight:600;margin-top:4px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ properties.title }}</div>
       </div>`
     );
+    const clusterLayout = window.ymaps.templateLayoutFactory.createClass(
+      `<div style="box-sizing:border-box;width:44px;height:44px;border-radius:50%;background:#D9F36B;color:#232323;border:3px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.24);display:flex;align-items:center;justify-content:center;font:800 15px inherit;">{{ properties.geoObjects.length }}</div>`
+    );
+    const clusterer = new window.ymaps.Clusterer({
+      clusterDisableClickZoom: false, clusterOpenBalloonOnClick: false, groupByCoordinates: false,
+      gridSize: 96, hasBalloon: false, hasHint: false, clusterIconLayout: clusterLayout,
+      clusterIconShape: { type: "Circle", coordinates: [22, 22], radius: 24 },
+    });
+    clustererRef.current = clusterer;
 
     mapPoints.forEach((point) => {
       const active = selectedId === point.id;
@@ -184,16 +192,18 @@ export default function MapScreenWeb() {
           iconImageSize: [1, 1],
           iconImageOffset: [0, 0],
           iconContentLayout: layout,
-          iconContentOffset: [-88, -72],
-          iconContentSize: [176, 120],
+          iconContentOffset: [-74, -54],
+          iconContentSize: [148, 54],
+          iconShape: { type: "Rectangle", coordinates: [[-74, -54], [74, 0]] },
           zIndex: active ? 1000 : 1,
         }
       );
       placemark.events.add("click", () => setSelectedId(point.id));
-      mapRef.current.geoObjects.add(placemark);
+      clusterer.add(placemark);
       placemarksRef.current.set(point.id, placemark);
     });
 
+    mapRef.current.geoObjects.add(clusterer);
     mapRef.current.container.fitToViewport();
   }, [mapPoints, selectedId, mapReady]);
 
@@ -201,6 +211,7 @@ export default function MapScreenWeb() {
     return () => {
       mapRef.current?.destroy?.();
       mapRef.current = null;
+      clustererRef.current = null;
       placemarksRef.current.clear();
     };
   }, []);
