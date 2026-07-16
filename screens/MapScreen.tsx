@@ -38,7 +38,7 @@ type TaskWithGeo = TaskItem & { lat?: number | null; lng?: number | null };
 export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "Map">>();
   const route = useRoute<R>();
-  const filter = route.params || {};
+  const filter = route.params;
   const { t } = useLang();
   const insets = useSafeAreaInsets();
   const webRef = useRef<WebView>(null);
@@ -98,29 +98,31 @@ export default function MapScreen() {
 
   const taskFilters = useMemo<TaskFilters>(
     () => ({
-      category: filter.category,
-      category_id: filter.category_id,
-      q: filter.q,
-      city: filter.city,
-      budget_min: filter.budget_min,
-      budget_max: filter.budget_max,
+      category: filter?.category,
+      category_id: filter?.category_id,
+      q: filter?.q,
+      city: filter?.city,
+      budget_min: filter?.budget_min,
+      budget_max: filter?.budget_max,
       lat: coords?.lat,
       lng: coords?.lng,
       sort: coords ? "distance" : undefined,
     }),
-    [filter, coords]
+    [filter?.category, filter?.category_id, filter?.q, filter?.city, filter?.budget_min, filter?.budget_max, coords]
   );
+
+  useEffect(() => {
+    apiFetch("/categories", { method: "GET" })
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => setCategories([]));
+  }, []);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const qs = buildTaskQueryParams(taskFilters);
-      const [catData, taskData] = await Promise.all([
-        apiFetch("/categories", { method: "GET" }),
-        apiFetch(qs ? `/tasks?${qs}` : "/tasks", { method: "GET" }),
-      ]);
-      setCategories(Array.isArray(catData) ? catData : []);
+      const taskData = await apiFetch(qs ? `/tasks?${qs}` : "/tasks", { method: "GET" });
       setTasks(Array.isArray(taskData) ? (taskData as TaskWithGeo[]) : []);
       setSelectedId(null);
     } catch (e: unknown) {
@@ -190,12 +192,12 @@ export default function MapScreen() {
   };
 
   const navFilters = {
-    category: filter.category,
-    category_id: filter.category_id,
-    q: filter.q,
-    city: filter.city,
-    budget_min: filter.budget_min,
-    budget_max: filter.budget_max,
+    category: filter?.category,
+    category_id: filter?.category_id,
+    q: filter?.q,
+    city: filter?.city,
+    budget_min: filter?.budget_min,
+    budget_max: filter?.budget_max,
   };
 
   return (
