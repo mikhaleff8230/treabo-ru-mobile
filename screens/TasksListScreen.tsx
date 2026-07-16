@@ -132,7 +132,7 @@ export default function TasksListScreen() {
             <View style={styles.segmentOn}>
               <Text style={styles.segmentOnText}>{t("list_view")}</Text>
             </View>
-            <TouchableOpacity style={styles.segmentOff} onPress={() => navigation.navigate("Map", mapParams)}>
+            <TouchableOpacity style={styles.segmentOff} onPress={() => navigation.replace("Map", mapParams)}>
               <Text style={styles.segmentOffText}>{t("map_view")}</Text>
             </TouchableOpacity>
           </View>

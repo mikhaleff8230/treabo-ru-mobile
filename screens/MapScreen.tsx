@@ -227,7 +227,7 @@ export default function MapScreen() {
         <SafeAreaView style={styles.overlay} edges={["top"]} pointerEvents="box-none">
           <View style={styles.toggleRow}>
             <View style={styles.segment}>
-              <TouchableOpacity style={styles.segmentBtn} onPress={() => navigation.navigate("TasksList", navFilters)}>
+              <TouchableOpacity style={styles.segmentBtn} onPress={() => navigation.replace("TasksList", navFilters)}>
                 <Text style={styles.segmentInactive}>{t("list_view")}</Text>
               </TouchableOpacity>
               <View style={styles.segmentActive}>

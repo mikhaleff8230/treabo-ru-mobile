@@ -48,6 +48,14 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+export type TasksStackParamList = {
+  TasksHome: undefined;
+  Map: RootStackParamList["Map"];
+  TasksList: RootStackParamList["TasksList"];
+  TaskSearch: undefined;
+  TaskFilter: RootStackParamList["TaskFilter"];
+};
+
 export type AuthStackParamList = {
   Welcome: undefined;
   PhoneEntry: { role?: "customer" | "specialist" };
