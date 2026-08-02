@@ -1,4 +1,4 @@
-package ru.sancan.proffi
+package ru.treabo.client
 
 import android.app.Application
 import android.content.res.Configuration
