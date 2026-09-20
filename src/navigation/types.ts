@@ -13,6 +13,7 @@ export type TaskRouteParams =
 
 export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
+  DesignSystemShowcase: undefined;
 
   // Canonical TREABO routes.
   AIRequest: undefined;

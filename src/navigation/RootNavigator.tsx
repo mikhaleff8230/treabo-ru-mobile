@@ -39,6 +39,7 @@ import WalletScreen from "../../screens/WalletScreen";
 import PhoneChangeScreen from "../../screens/PhoneChangeScreen";
 import IdentityVerificationScreen from "../../screens/IdentityVerificationScreen";
 import MyReviewsScreen from "../../screens/MyReviewsScreen";
+import DesignSystemShowcaseScreen from "../../screens/DesignSystemShowcaseScreen";
 import type {
   AuthStackParamList,
   MainTabParamList,
@@ -204,6 +205,7 @@ function LoggedInStack() {
   return (
     <AppStackNav.Navigator screenOptions={{ headerShown: false }}>
       <AppStackNav.Screen name="MainTabs" component={MainTabs} />
+      <AppStackNav.Screen name="DesignSystemShowcase" component={DesignSystemShowcaseScreen} />
 
       <AppStackNav.Screen name="AIRequest" component={AiCreateRequestScreen} />
       <AppStackNav.Screen name="Search" component={PlaceSearchScreen} />
@@ -264,6 +266,7 @@ export function RootNavigator() {
         config: {
           screens: {
             MainTabs: "home",
+            DesignSystemShowcase: "design-system",
             Map: "map",
             Search: "search",
             PlaceDetail: "place/:placeId",
