@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
-import { colors } from "../theme";
+import { colors, radius, spacing, typography } from "../theme";
 import { useChatStore } from "../store/chatStore";
 import WelcomeAuthScreen from "../../screens/auth/WelcomeAuthScreen";
 import AuthOptionsScreen from "../../screens/auth/AuthOptionsScreen";
@@ -109,8 +109,8 @@ function MainTabs() {
         screenOptions={({ route }) => ({
           headerShown: false,
           tabBarHideOnKeyboard: true,
-          tabBarActiveTintColor: colors.black,
-          tabBarInactiveTintColor: colors.navInactive,
+          tabBarActiveTintColor: colors.textPrimary,
+          tabBarInactiveTintColor: colors.textSecondary,
           tabBarStyle: getTabBarStyle(insets),
           tabBarItemStyle: styles.tabItem,
           tabBarLabelStyle: styles.tabLabel,
@@ -294,8 +294,8 @@ export function RootNavigator() {
 const styles = StyleSheet.create({
   splash: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.white },
   emptyActionRoute: { flex: 1, backgroundColor: colors.white },
-  tabItem: { paddingTop: 2 },
-  tabLabel: { fontSize: 11, lineHeight: 15, fontWeight: "600", marginTop: 0 },
+  tabItem: { paddingTop: spacing.xs },
+  tabLabel: { ...typography.meta, fontWeight: "500", marginTop: 0 },
   iconFrame: { width: 34, height: 31, alignItems: "center", justifyContent: "center" },
   homeAccent: {
     position: "absolute",
@@ -323,26 +323,18 @@ const styles = StyleSheet.create({
   },
   createTabPressed: { opacity: 0.78 },
   createCircle: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    marginTop: -25,
+    width: 54,
+    height: 54,
+    borderRadius: radius.full,
+    marginTop: -16,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.accent,
-    borderWidth: 4,
-    borderColor: colors.white,
-    shadowColor: colors.black,
-    shadowOpacity: 0.14,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 10,
   },
   createLabel: {
-    color: colors.navInactive,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "600",
-    marginTop: -1,
+    color: colors.textSecondary,
+    ...typography.meta,
+    fontWeight: "500",
+    marginTop: spacing.xs,
   },
 });

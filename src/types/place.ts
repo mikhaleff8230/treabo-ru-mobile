@@ -6,6 +6,19 @@ export type PlaceImage = {
   sort_order?: number;
   width?: number | null;
   height?: number | null;
+  mime_type?: string | null;
+};
+
+export type PlaceVideo = {
+  id?: string;
+  url?: string | null;
+  preview?: string | null;
+  poster?: string | null;
+  thumbnail?: string | null;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+  mime_type?: string | null;
 };
 
 export type PlaceAuthor = {
@@ -23,6 +36,7 @@ export type Place = {
   description?: string | null;
   cover?: PlaceImage | null;
   gallery?: PlaceImage[];
+  videos?: PlaceVideo[];
   price?: number | null;
   hide_price?: boolean;
   price_label?: string;
@@ -38,9 +52,20 @@ export type Place = {
   author_places_count?: number;
   favorites_count?: number;
   is_favorite?: boolean;
+  likes_count?: number;
+  is_liked?: boolean;
+  comments_count?: number;
   duration_days?: number | null;
   status?: string;
   published_at?: string | null;
+};
+
+export type PlacePage = {
+  items: Place[];
+  page: number;
+  lastPage: number;
+  perPage: number;
+  total: number;
 };
 
 export type PlaceFilters = {

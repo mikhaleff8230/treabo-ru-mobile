@@ -1,25 +1,19 @@
 import type { EdgeInsets } from "react-native-safe-area-context";
-import { colors } from "../theme";
+import { colors, sizes, spacing } from "../theme";
 
 /** Высота области с иконками/подписями (без системного отступа снизу). */
-export const TAB_BAR_BASE_HEIGHT = 78;
-export const TAB_BAR_PADDING_TOP = 8;
+export const TAB_BAR_BASE_HEIGHT = sizes.bottomNavigation;
+export const TAB_BAR_PADDING_TOP = spacing.xs;
 
 /** Стиль нижней панели вкладок с учётом home indicator / gesture bar. */
 export function getTabBarStyle(insets: EdgeInsets) {
   const bottom = insets.bottom;
   return {
-    borderTopWidth: 0,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    backgroundColor: colors.surface,
     paddingTop: TAB_BAR_PADDING_TOP,
     paddingBottom: bottom,
     height: TAB_BAR_BASE_HEIGHT + bottom,
-    shadowColor: colors.black,
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 14,
   };
 }
