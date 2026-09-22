@@ -1,4 +1,11 @@
 pluginManagement {
+  // EAS may restore Windows-generated autolinking output on its Linux workers.
+  // Regenerate it before plugin resolution so module paths match the builder.
+  def autolinkingCacheDir = new File(rootDir, "build/generated/autolinking")
+  if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
+    autolinkingCacheDir.deleteDir()
+  }
+
   def reactNativeGradlePlugin = new File(
     providers.exec {
       workingDir(rootDir)

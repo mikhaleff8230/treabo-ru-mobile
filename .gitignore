@@ -2,6 +2,7 @@ node_modules/
 .expo/
 .expo-export-test/
 dist/
+android/build/
 *.log
 .env
 .env.local
