@@ -160,7 +160,7 @@ export default function HomePlacesScreen() {
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 45 }).current;
 
   const header = <>
-    <PlacesFeedHeader city={user?.city || "Москва"} onSearch={() => navigation.navigate("Search")} />
+    <PlacesFeedHeader city={user?.city || "Москва"} onSearch={() => navigation.navigate("MainTabs", { screen: "SearchTab" })} />
     <PlaceCategoryRail categories={feedCategories} activeId={categoryId} onSelect={setCategoryId} />
   </>;
 

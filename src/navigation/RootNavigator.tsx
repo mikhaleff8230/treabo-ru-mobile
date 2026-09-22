@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { TreaboLogo } from "../../components/TreaboLogo";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { NavigationContainer, DefaultTheme, useNavigation, type Theme } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, useFocusEffect, useNavigation, type LinkingOptions, type Theme } from "@react-navigation/native";
 import { createNativeStackNavigator, type NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { useLang } from "../context/LangContext";
 import { colors, radius, spacing, typography } from "../theme";
-import { useChatStore } from "../store/chatStore";
+import { listConversations } from "../services/messenger";
+import { useMessengerBadgeStore } from "../store/messengerBadgeStore";
 import WelcomeAuthScreen from "../../screens/auth/WelcomeAuthScreen";
 import AuthOptionsScreen from "../../screens/auth/AuthOptionsScreen";
 import PhoneAuthScreen from "../../screens/auth/PhoneAuthScreen";
@@ -63,8 +64,6 @@ import DesignSystemShowcaseScreen from "../../screens/DesignSystemShowcaseScreen
 import type {
   AuthStackParamList,
   MainTabParamList,
-  MapStackParamList,
-  RequestsStackParamList,
   RootStackParamList,
 } from "./types";
 import { getTabBarStyle } from "./tabBar";
@@ -75,42 +74,47 @@ import { CreateActionSheet } from "./CreateActionSheet";
 const AuthStackNav = createNativeStackNavigator<AuthStackParamList>();
 const AppStackNav = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
-const MapStackNav = createNativeStackNavigator<MapStackParamList>();
-const RequestsStackNav = createNativeStackNavigator<RequestsStackParamList>();
 
 const navTheme: Theme = {
   ...DefaultTheme,
   colors: { ...DefaultTheme.colors, background: colors.white, card: colors.white, primary: colors.black, text: colors.black, border: colors.neutral100 },
 };
 
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ["treabo-client://", "treabo://"],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: "home",
+          SearchTab: "search",
+          Messages: "messages",
+          Profile: "profile",
+        },
+      },
+      DesignSystemShowcase: "design-system",
+      PlacesMap: "map",
+      Map: "task-map",
+      Search: "search/results",
+      MyRequests: "requests",
+      PlaceDetail: "place/:placeId",
+      CreatePlace: "place/new",
+      Chat: "chat/:chatId",
+      TaskDetail: "task/:taskId",
+      Applications: "task/:taskId/applications",
+      PublicProfile: "specialist/:specialistId",
+      MessengerChat: "messenger/:conversationId",
+      MessengerCall: "messenger/:conversationId/call",
+    },
+  },
+};
+
 function EmptyActionRoute() {
   return <View style={styles.emptyActionRoute} />;
 }
 
-function MapTab() {
-  return (
-    <MapStackNav.Navigator initialRouteName="Map" screenOptions={{ headerShown: false }}>
-      <MapStackNav.Screen name="Map" component={PlacesMapScreen} />
-      <MapStackNav.Screen name="TasksList" component={TasksListScreen} />
-      <MapStackNav.Screen name="TaskSearch" component={TaskSearchScreen} />
-      <MapStackNav.Screen name="TaskFilter" component={TaskFilterScreen} />
-    </MapStackNav.Navigator>
-  );
-}
-
-function RequestsTab() {
-  return (
-    <RequestsStackNav.Navigator
-      initialRouteName="MyRequests"
-      screenOptions={{ headerShown: false }}
-    >
-      <RequestsStackNav.Screen name="MyRequests" component={RequestsHubScreen} />
-      <RequestsStackNav.Screen name="TasksList" component={TasksListScreen} />
-      <RequestsStackNav.Screen name="Map" component={MapScreen} />
-      <RequestsStackNav.Screen name="TaskSearch" component={TaskSearchScreen} />
-      <RequestsStackNav.Screen name="TaskFilter" component={TaskFilterScreen} />
-    </RequestsStackNav.Navigator>
-  );
+function SearchTabScreen() {
+  return <PlaceSearchScreen asTab />;
 }
 
 function MainTabs() {
@@ -118,9 +122,17 @@ function MainTabs() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, "MainTabs">>();
   const insets = useSafeAreaInsets();
   const [createOpen, setCreateOpen] = useState(false);
-  const unreadChats = useChatStore((state) =>
-    state.chats.reduce((sum, chat) => sum + Number(chat.unread_count || 0), 0),
-  );
+  const unreadChats = useMessengerBadgeStore((state) => state.unreadCount);
+  const setUnreadChats = useMessengerBadgeStore((state) => state.setFromConversations);
+
+  useFocusEffect(useCallback(() => {
+    const refreshUnread = () => {
+      void listConversations().then(setUnreadChats).catch(() => undefined);
+    };
+    refreshUnread();
+    const timer = setInterval(refreshUnread, 30_000);
+    return () => clearInterval(timer);
+  }, [setUnreadChats]));
 
   return (
     <>
@@ -139,8 +151,8 @@ function MainTabs() {
 
             const iconNames: Record<Exclude<keyof MainTabParamList, "CreateAction">, keyof typeof Ionicons.glyphMap> = {
               Home: "home-outline",
-              Map: "location-outline",
-              Requests: "chatbox-outline",
+              SearchTab: "search-outline",
+              Messages: "chatbubble-ellipses-outline",
               Profile: "person-outline",
             };
             const iconName = iconNames[route.name as Exclude<keyof MainTabParamList, "CreateAction">];
@@ -149,7 +161,7 @@ function MainTabs() {
               <View style={styles.iconFrame}>
                 {route.name === "Home" && focused ? <View style={styles.homeAccent} /> : null}
                 <Ionicons name={iconName} size={27} color={color} />
-                {route.name === "Requests" && unreadChats > 0 ? <View style={styles.activityDot} /> : null}
+                {route.name === "Messages" && unreadChats > 0 ? <View style={styles.unreadBadge}><Text style={styles.unreadBadgeText}>{unreadChats > 99 ? "99+" : unreadChats}</Text></View> : null}
               </View>
             );
           },
@@ -161,9 +173,9 @@ function MainTabs() {
           options={{ title: t("tab_home"), tabBarLabel: t("tab_home") }}
         />
         <Tab.Screen
-          name="Map"
-          component={MapTab}
-          options={{ title: t("tab_map"), tabBarLabel: t("tab_map") }}
+          name="SearchTab"
+          component={SearchTabScreen}
+          options={{ title: t("tab_search"), tabBarLabel: t("tab_search") }}
         />
         <Tab.Screen
           name="CreateAction"
@@ -194,9 +206,9 @@ function MainTabs() {
           }}
         />
         <Tab.Screen
-          name="Requests"
-          component={RequestsTab}
-          options={{ title: t("tab_requests"), tabBarLabel: t("tab_requests") }}
+          name="Messages"
+          component={MessengerListScreen}
+          options={{ title: t("tab_messages"), tabBarLabel: t("tab_messages") }}
         />
         <Tab.Screen
           name="Profile"
@@ -231,6 +243,8 @@ function LoggedInStack() {
       <AppStackNav.Screen name="RequestPublished" component={RequestPublishedScreen} />
       <AppStackNav.Screen name="SuitableMasters" component={SuitableMastersScreen} />
       <AppStackNav.Screen name="Search" component={PlaceSearchScreen} />
+      <AppStackNav.Screen name="PlacesMap" component={PlacesMapScreen} />
+      <AppStackNav.Screen name="MyRequests" component={RequestsHubScreen} />
       <AppStackNav.Screen name="CreatePlace" component={CreatePlaceScreen} />
       <AppStackNav.Screen name="PlacePublished" component={PlacePublishedScreen} />
       <AppStackNav.Screen name="PlaceDetail" component={PlaceDetailScreen} />
@@ -300,25 +314,7 @@ export function RootNavigator() {
   return (
     <NavigationContainer
       theme={navTheme}
-      linking={{
-        prefixes: ["treabo-client://", "treabo://"],
-        config: {
-          screens: {
-            MainTabs: "home",
-            DesignSystemShowcase: "design-system",
-            Map: "map",
-            Search: "search",
-            PlaceDetail: "place/:placeId",
-            CreatePlace: "place/new",
-            Chat: "chat/:chatId",
-            TaskDetail: "task/:taskId",
-            Applications: "task/:taskId/applications",
-            PublicProfile: "specialist/:specialistId",
-            MessengerChat: "messenger/:conversationId",
-            MessengerCall: "messenger/:conversationId/call",
-          },
-        },
-      }}
+      linking={linking}
     >
       {user ? <LoggedInStack /> : (
         <AuthStackNav.Navigator screenOptions={{ headerShown: false }} initialRouteName="Welcome">
@@ -345,17 +341,21 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.accent,
   },
-  activityDot: {
+  unreadBadge: {
     position: "absolute",
-    top: 0,
-    right: 1,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    top: -5,
+    right: -7,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
     backgroundColor: colors.danger,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
   },
+  unreadBadgeText: { color: colors.white, fontSize: 9, fontWeight: "600" },
   createTab: {
     flex: 1,
     alignItems: "center",

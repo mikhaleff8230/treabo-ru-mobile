@@ -68,7 +68,7 @@ function TaskRow({ task, onPress }: { task: Task; onPress: () => void }) {
   );
 }
 
-export default function PlaceSearchScreen() {
+export default function PlaceSearchScreen({ asTab = false }: { asTab?: boolean }) {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
   const [mode, setMode] = useState<SearchMode>("places");
@@ -133,7 +133,7 @@ export default function PlaceSearchScreen() {
   return (
     <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={24} color={colors.textPrimary} /></TouchableOpacity>
+        {!asTab ? <TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={24} color={colors.textPrimary} /></TouchableOpacity> : null}
         <View style={styles.searchBox}><Ionicons name="search" size={20} color={colors.textSecondary} /><TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder={placeholder} placeholderTextColor={colors.textTertiary} returnKeyType="search" onSubmitEditing={() => void search()} />{query ? <TouchableOpacity onPress={() => setQuery("")}><Ionicons name="close-circle" size={19} color={colors.textTertiary} /></TouchableOpacity> : null}</View>
       </View>
       <View style={styles.tabs}>{modes.map((item) => <Pressable key={item.id} onPress={() => setMode(item.id)} style={[styles.tab, mode === item.id && styles.tabActive]}><AppText variant="secondary" style={mode === item.id ? styles.tabActiveText : undefined}>{item.label}</AppText></Pressable>)}</View>
@@ -144,7 +144,8 @@ export default function PlaceSearchScreen() {
           {mode === "places" ? <Chip label={priceFrom || priceTo ? "Цена задана" : "Цена"} selected={Boolean(priceFrom || priceTo)} onPress={() => setFiltersOpen(true)} /> : null}
           {mode === "specialists" ? <Chip label="Сейчас онлайн" selected={online} onPress={() => setOnline((value) => !value)} /> : null}
         </ScrollView>
-        <TouchableOpacity style={styles.smallIconButton} onPress={() => mode === "places" ? setFiltersOpen(true) : navigation.navigate("MainTabs", { screen: "Map" })}><Ionicons name={mode === "places" ? "options-outline" : "map-outline"} size={20} color={colors.textPrimary} /></TouchableOpacity>
+        {mode === "places" ? <TouchableOpacity style={styles.smallIconButton} onPress={() => setFiltersOpen(true)} accessibilityLabel="Фильтры"><Ionicons name="options-outline" size={20} color={colors.textPrimary} /></TouchableOpacity> : null}
+        <TouchableOpacity style={styles.smallIconButton} onPress={() => navigation.navigate("PlacesMap", { mode: mode === "tasks" ? "tasks" : "places" })} accessibilityLabel="Карта работ и заявок"><Ionicons name="map-outline" size={20} color={colors.textPrimary} /></TouchableOpacity>
       </View>
       <View style={styles.resultHead}><AppText variant="section">Найдено {data.length}</AppText><AppText variant="meta" tone="secondary">Сначала новые</AppText></View>
       {loading ? <View style={styles.skeletons}>{[0, 1, 2].map((item) => <Skeleton key={item} style={styles.resultSkeleton} />)}</View> : <FlatList data={data as Array<Place | Specialist | Task>} keyExtractor={(item) => `${mode}-${item.id}`} renderItem={renderItem} contentContainerStyle={[styles.results, data.length === 0 && styles.emptyResults]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" ItemSeparatorComponent={() => <View style={styles.separator} />} ListEmptyComponent={<EmptyState title={error ? "Поиск временно недоступен" : "Ничего не найдено"} description={error || "Измените запрос или параметры фильтра."} icon={error ? "cloud-offline-outline" : "search-outline"} action={error ? <Button label="Повторить" variant="secondary" onPress={() => void search()} style={styles.retry} /> : undefined} />} />}

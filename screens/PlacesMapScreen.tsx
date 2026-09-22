@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, ScrollView, StyleSheet, TouchableOpacity, Vie
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
 import { TreaboHeader } from "../components/TreaboHeader";
@@ -21,8 +21,9 @@ type Mode = "places" | "tasks";
 
 export default function PlacesMapScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, "PlacesMap">>();
   const webRef = useRef<WebView>(null);
-  const [mode, setMode] = useState<Mode>("places");
+  const [mode, setMode] = useState<Mode>(route.params?.mode ?? "places");
   const [places, setPlaces] = useState<Place[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -30,6 +31,8 @@ export default function PlacesMapScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const html = useMemo(() => buildYandexMapShellHtml(yandexMapsApiKey()), []);
+
+  useEffect(() => { if (route.params?.mode) setMode(route.params.mode); }, [route.params?.mode]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,7 +89,10 @@ export default function PlacesMapScreen() {
     <View style={styles.root}>
       <WebView ref={webRef} originWhitelist={["*"]} source={{ html }} onMessage={onMessage} javaScriptEnabled domStorageEnabled style={StyleSheet.absoluteFill} />
       <SafeAreaView style={styles.overlay} edges={["top"]} pointerEvents="box-none">
-        <TreaboHeader compact onSearch={() => navigation.navigate("Search")} />
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate("MainTabs", { screen: "SearchTab" })} accessibilityLabel="Назад к поиску"><Ionicons name="chevron-back" size={24} color={colors.textPrimary} /></TouchableOpacity>
+          <View style={styles.headerFill}><TreaboHeader compact onSearch={() => navigation.navigate("MainTabs", { screen: "SearchTab" })} /></View>
+        </View>
         <View style={styles.mode}>
           <TouchableOpacity style={[styles.modeButton, mode === "places" && styles.modeActive]} onPress={() => { setMode("places"); setSelected(null); }}><AppText variant="bodyMedium">Работы</AppText></TouchableOpacity>
           <TouchableOpacity style={[styles.modeButton, mode === "tasks" && styles.modeActive]} onPress={() => { setMode("tasks"); setSelected(null); }}><AppText variant="bodyMedium">Заявки</AppText></TouchableOpacity>
@@ -138,6 +144,7 @@ function NearbyList({ items, mode, onSelect, onAll }: { items: Array<Place | Tas
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#EDF0E9" }, overlay: { position: "absolute", left: 0, right: 0, top: 0, backgroundColor: "rgba(255,255,255,.96)" },
+  topBar: { flexDirection: "row", alignItems: "center" }, backButton: { width: 42, height: 48, alignItems: "center", justifyContent: "center" }, headerFill: { flex: 1 },
   mode: { flexDirection: "row", alignSelf: "center", backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg, padding: 3, marginTop: -60, marginBottom: 22 }, modeButton: { width: 104, height: 42, alignItems: "center", justifyContent: "center", borderRadius: radius.md }, modeActive: { backgroundColor: colors.accent },
   filters: { paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.sm }, filterIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" },
   mapActions: { position: "absolute", right: spacing.md, top: 250, gap: spacing.sm }, mapAction: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: .09, shadowRadius: 8, elevation: 3 },

@@ -200,7 +200,7 @@ export default function AiCreateRequestScreen() {
       setResponse(null);
       setMessages([]);
       if (taskId) navigation.replace("RequestPublished", { taskId });
-      else navigation.navigate("MainTabs", { screen: "Requests" });
+      else navigation.navigate("MyRequests", { tab: "mine" });
     } catch (error) {
       Alert.alert("Заявка не опубликована", error instanceof Error ? error.message : String(error));
     } finally { setBusy(false); }

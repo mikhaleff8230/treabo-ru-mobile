@@ -54,7 +54,7 @@ export default function HomePlacesLegacyScreen() {
 
   return (
     <TabScreenLayout>
-      <TreaboHeader onSearch={() => navigation.navigate("Search")} onFilter={() => navigation.navigate("Search", { filtersOpen: true })} onMap={() => navigation.navigate("MainTabs", { screen: "Map" })} />
+      <TreaboHeader onSearch={() => navigation.navigate("MainTabs", { screen: "SearchTab" })} onFilter={() => navigation.navigate("Search", { filtersOpen: true })} onMap={() => navigation.navigate("PlacesMap", { mode: "places" })} />
       <View style={styles.chipTrack}>
         <FlatList
           horizontal

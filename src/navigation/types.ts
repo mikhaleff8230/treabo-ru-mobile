@@ -23,6 +23,8 @@ export type RootStackParamList = {
   PlacePublished: { placeId: string };
   PlaceDetail: { placeId: string };
   Search: { filtersOpen?: boolean } | undefined;
+  PlacesMap: { mode?: "places" | "tasks" } | undefined;
+  MyRequests: { tab?: "mine" | "responses" | "available" } | undefined;
   Applications: { taskId: string };
   ApplicationDetail: { taskId: string; applicationId: string };
   MasterSelected: { taskId: string; specialistId: string; chatId?: string };
@@ -75,25 +77,10 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Map: undefined;
+  SearchTab: undefined;
   CreateAction: undefined;
-  Requests: undefined;
+  Messages: undefined;
   Profile: undefined;
-};
-
-export type MapStackParamList = {
-  Map: TaskRouteParams;
-  TasksList: TaskRouteParams;
-  TaskSearch: undefined;
-  TaskFilter: TaskRouteParams;
-};
-
-export type RequestsStackParamList = {
-  MyRequests: undefined;
-  TasksList: TaskRouteParams;
-  Map: TaskRouteParams;
-  TaskSearch: undefined;
-  TaskFilter: TaskRouteParams;
 };
 
 export type TasksStackParamList = {

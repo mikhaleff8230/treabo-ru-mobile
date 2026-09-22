@@ -38,7 +38,7 @@ export default function PlacePublishedScreen() {
 
       <Button label="Посмотреть Плейс" onPress={() => navigation.navigate("PlaceDetail", { placeId: params.placeId })} style={styles.firstButton} />
       <Button label="Добавить ещё одну работу" variant="secondary" onPress={() => navigation.replace("CreatePlace")} style={styles.secondaryButton} />
-      <Button label="Перейти на карту" variant="text" onPress={() => navigation.navigate("MainTabs", { screen: "Map" })} />
+      <Button label="Перейти на карту" variant="text" onPress={() => navigation.navigate("PlacesMap", { mode: "places" })} />
     </ScrollView>
   </SafeAreaView>;
 }

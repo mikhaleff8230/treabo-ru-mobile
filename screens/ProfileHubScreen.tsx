@@ -90,10 +90,11 @@ export default function ProfileHubScreen() {
         </TouchableOpacity>
 
         <View style={styles.menu}>
-          {isMaster ? <Menu icon="images-outline" label="Мои Плейсы" value={String(works)} onPress={() => navigation.navigate("MyPlaces")} /> : null}
-          <Menu icon="document-text-outline" label="Мои заявки" value={String(requests)} onPress={() => navigation.navigate("MainTabs", { screen: "Requests" })} />
+          <Menu icon="images-outline" label="Мои Плейсы" value={String(works)} onPress={() => navigation.navigate("MyPlaces")} />
+          <Menu icon="document-text-outline" label="Мои заявки" value={String(requests)} onPress={() => navigation.navigate("MyRequests", { tab: "mine" })} />
+          {isMaster ? <Menu icon="list-outline" label="Мои отклики" onPress={() => navigation.navigate("MyRequests", { tab: "responses" })} /> : null}
           <Menu icon="heart-outline" label="Избранное" value={String(favorites)} onPress={() => navigation.navigate("Favorites")} />
-          <Menu icon="chatbubble-outline" label="Сообщения" onPress={() => navigation.navigate("ChatList")} />
+          <Menu icon="chatbubble-outline" label="Сообщения" onPress={() => navigation.navigate("MainTabs", { screen: "Messages" })} />
           <Menu icon="notifications-outline" label="Уведомления" onPress={() => navigation.navigate("Notifications")} />
           <Menu icon="wallet-outline" label="Баланс и платежи" onPress={() => navigation.navigate("Balance")} />
           <Menu icon="star-outline" label="Мои отзывы" onPress={() => navigation.navigate("MyReviews")} />

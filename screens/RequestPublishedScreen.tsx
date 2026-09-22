@@ -25,9 +25,9 @@ export default function RequestPublishedScreen() {
       <AppText variant="display" style={styles.center}>Заявка опубликована!</AppText>
       <AppText variant="body" tone="secondary" style={styles.subtitle}>Подходящие мастера увидят её и смогут откликнуться. Мы покажем рекомендации уже сейчас.</AppText>
       {task ? <View style={styles.taskCard}>{photo ? <Image source={{ uri: photo }} style={styles.taskImage} /> : null}<View style={styles.taskCopy}><AppText variant="section" numberOfLines={2}>{task.title}</AppText><View style={styles.meta}><Ionicons name="location-outline" size={17} color={colors.textSecondary} /><AppText variant="secondary" tone="secondary" numberOfLines={1}>{task.city}{task.address ? `, ${task.address}` : ""}</AppText></View><View style={styles.chips}><Chip label={task.work_title || "Заявка"} /><Chip label={task.budget_label || "По договорённости"} /></View></View></View> : <Skeleton style={styles.taskSkeleton} />}
-      <View style={styles.info}><View style={styles.infoIcon}><Ionicons name="notifications-outline" size={23} color={colors.textPrimary} /></View><View style={styles.taskCopy}><AppText variant="bodyMedium">Сообщим о новых откликах</AppText><AppText variant="meta" tone="secondary">Уведомления и все предложения будут доступны в разделе «Заявки».</AppText></View></View>
+      <View style={styles.info}><View style={styles.infoIcon}><Ionicons name="notifications-outline" size={23} color={colors.textPrimary} /></View><View style={styles.taskCopy}><AppText variant="bodyMedium">Сообщим о новых откликах</AppText><AppText variant="meta" tone="secondary">Уведомления и все предложения будут доступны в профиле, в разделе «Мои заявки».</AppText></View></View>
       <Button label="Посмотреть мастеров" onPress={() => navigation.replace("SuitableMasters", { taskId: params.taskId })} style={styles.primary} />
-      <Button label="Перейти к моим заявкам" variant="secondary" onPress={() => navigation.navigate("MainTabs", { screen: "Requests" })} style={styles.secondary} />
+      <Button label="Перейти к моим заявкам" variant="secondary" onPress={() => navigation.navigate("MyRequests", { tab: "mine" })} style={styles.secondary} />
     </ScrollView>
   </SafeAreaView>;
 }
