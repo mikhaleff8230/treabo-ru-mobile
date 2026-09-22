@@ -58,6 +58,19 @@ export type Place = {
   duration_days?: number | null;
   status?: string;
   published_at?: string | null;
+  created_at?: string | null;
+  location?: { id?: number | null; city?: string | null; name?: string | null; region?: string | null; lat?: number | null; lng?: number | null } | null;
+  reviews_summary?: {
+    rating: number;
+    count: number;
+    reviews: Array<{
+      id: string;
+      rating: number;
+      comment?: string | null;
+      customer?: { id: string; name: string; avatar?: string | null };
+      created_at?: string | null;
+    }>;
+  };
 };
 
 export type PlacePage = {
@@ -76,6 +89,7 @@ export type PlaceFilters = {
   price_to?: number;
   with_photo?: boolean;
   favorites?: boolean;
+  author?: string;
   lat?: number;
   lng?: number;
   sort?: "new" | "nearby" | "popular";
@@ -94,4 +108,5 @@ export type PlaceDraft = {
   duration_days?: number | null;
   status?: "draft" | "published";
   images?: Array<{ url: string; thumbnail_url?: string; is_cover?: boolean; sort_order?: number }>;
+  videos?: Array<{ url: string; duration?: number | null; width?: number | null; height?: number | null; file_size?: number | null; mime_type?: string | null }>;
 };

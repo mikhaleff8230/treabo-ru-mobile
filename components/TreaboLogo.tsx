@@ -3,7 +3,7 @@ import { Image, StyleSheet, View } from "react-native";
 import { apiFetch, fileUrl } from "../src/api";
 
 type Props = {
-  size?: "splash" | "auth";
+  size?: "splash" | "auth" | "compact";
 };
 
 const localLogo = require("../assets/treabo-logo.png");
@@ -11,7 +11,8 @@ const localLogo = require("../assets/treabo-logo.png");
 export function TreaboLogo({ size = "auth" }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const isSplash = size === "splash";
-  const imageStyle = [styles.logoImage, isSplash && styles.logoImageSplash];
+  const isCompact = size === "compact";
+  const imageStyle = [styles.logoImage, isSplash && styles.logoImageSplash, isCompact && styles.logoImageCompact];
 
   useEffect(() => {
     apiFetch("/site-settings", { method: "GET", auth: false })
@@ -41,4 +42,5 @@ const styles = StyleSheet.create({
   wrap: { alignItems: "center", justifyContent: "center" },
   logoImage: { width: 220, height: 74 },
   logoImageSplash: { width: 280, height: 96 },
+  logoImageCompact: { width: 118, height: 36 },
 });

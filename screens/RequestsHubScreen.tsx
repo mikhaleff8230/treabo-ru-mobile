@@ -1,13 +1,57 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { TabScreenLayout } from "../components/TabScreenLayout";
 import { TaskCardRow, type TaskItem } from "../components/TaskCardRow";
+import { AppText, Button, EmptyState, Skeleton } from "../components/ui";
 import { apiFetch } from "../src/api";
-import { colors } from "../src/theme";
+import { useAuth } from "../src/context/AuthContext";
+import { colors, radius, spacing } from "../src/theme";
 import type { RootStackParamList } from "../src/navigation/types";
-type Nav = NativeStackNavigationProp<RootStackParamList>; type Tab = "mine" | "responses" | "available";
-export default function RequestsHubScreen() { const navigation = useNavigation<Nav>(); const [tab, setTab] = useState<Tab>("mine"); const [items, setItems] = useState<TaskItem[]>([]); const [loading, setLoading] = useState(true); const load = useCallback(async () => { setLoading(true); try { const path = tab === "mine" ? "/tasks/mine" : tab === "responses" ? "/applications/mine" : "/tasks"; const data = await apiFetch(path, { method: "GET" }); const raw = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []; setItems(tab === "responses" ? raw.map((row: any) => row.task || row.proffi_task || row).filter((row: any) => row?.id) : raw); } catch { setItems([]); } finally { setLoading(false); } }, [tab]); useFocusEffect(useCallback(() => { void load(); }, [load])); return <TabScreenLayout><View style={styles.header}><Text style={styles.title}>Заявки</Text><TouchableOpacity onPress={() => navigation.navigate("ChatList")}><Text style={styles.chat}>Чаты</Text></TouchableOpacity></View><View style={styles.tabs}><TabButton active={tab === "mine"} label="Мои заявки" onPress={() => setTab("mine")} /><TabButton active={tab === "responses"} label="Мои отклики" onPress={() => setTab("responses")} /><TabButton active={tab === "available"} label="Доступные" onPress={() => setTab("available")} /></View><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>{loading ? <ActivityIndicator color={colors.black} style={{ marginTop: 40 }} /> : items.length ? <View style={styles.list}>{items.map((task) => <TaskCardRow key={String(task.id)} task={task} onPress={() => navigation.navigate("TaskDetail", { taskId: String(task.id) })} />)}</View> : <View style={styles.empty}><Text style={styles.emptyTitle}>{tab === "mine" ? "У вас пока нет заявок" : tab === "responses" ? "Откликов пока нет" : "Нет доступных заявок"}</Text><Text style={styles.emptyText}>{tab === "mine" ? "Создайте заявку через центральную кнопку +" : "Здесь появятся новые работы и ваши предложения."}</Text></View>}{tab === "mine" ? <TouchableOpacity style={styles.create} onPress={() => navigation.navigate("AIRequest")}><Text style={styles.createText}>＋ Создать новую заявку</Text></TouchableOpacity> : null}</ScrollView></TabScreenLayout>; }
-function TabButton({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) { return <TouchableOpacity style={[styles.tab, active && styles.tabActive]} onPress={onPress}><Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text></TouchableOpacity>; }
-const styles = StyleSheet.create({ header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 18, paddingTop: 13, paddingBottom: 14 }, title: { fontSize: 28, fontWeight: "900" }, chat: { color: "#5D6C91", fontSize: 15, fontWeight: "800" }, tabs: { flexDirection: "row", gap: 7, paddingHorizontal: 14, paddingBottom: 13 }, tab: { flex: 1, minHeight: 43, borderRadius: 15, backgroundColor: "#F1F3F6", alignItems: "center", justifyContent: "center", paddingHorizontal: 5 }, tabActive: { backgroundColor: colors.accent }, tabText: { fontSize: 12, textAlign: "center", fontWeight: "700" }, tabTextActive: { fontWeight: "900" }, content: { padding: 14, paddingBottom: 30 }, list: { gap: 11 }, empty: { alignItems: "center", borderRadius: 22, backgroundColor: "#F6F7F9", padding: 30, marginTop: 22 }, emptyTitle: { fontSize: 19, fontWeight: "900" }, emptyText: { color: colors.navInactive, textAlign: "center", lineHeight: 20, marginTop: 8 }, create: { minHeight: 58, borderRadius: 18, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", marginTop: 15 }, createText: { fontSize: 17, fontWeight: "900" } });
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Tab = "mine" | "responses" | "available";
+
+const tabs: Array<{ id: Tab; label: string }> = [
+  { id: "available", label: "Доступные" },
+  { id: "mine", label: "Мои" },
+  { id: "responses", label: "Отклики" },
+];
+
+export default function RequestsHubScreen() {
+  const navigation = useNavigation<Nav>();
+  const { user } = useAuth();
+  const [tab, setTab] = useState<Tab>(user?.role === "specialist" ? "available" : "mine");
+  const [items, setItems] = useState<TaskItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { setTab(user?.role === "specialist" ? "available" : "mine"); }, [user?.role]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const path = tab === "mine" ? "/tasks/mine" : tab === "responses" ? "/applications/mine" : "/tasks";
+      const data = await apiFetch(path, { method: "GET" });
+      const raw = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      setItems(tab === "responses" ? raw.map((row: any) => row.task || row.proffi_task || row).filter((row: any) => row?.id) : raw);
+    } catch (requestError) {
+      setItems([]);
+      setError(requestError instanceof Error ? requestError.message : "Не удалось загрузить заявки");
+    } finally { setLoading(false); }
+  }, [tab]);
+
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  return <TabScreenLayout>
+    <View style={styles.header}><AppText variant="display">Заявки</AppText><TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate("ChatList")} accessibilityLabel="Сообщения"><Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textPrimary} /></TouchableOpacity></View>
+    <View style={styles.tabs}>{tabs.map((item) => <TouchableOpacity key={item.id} style={[styles.tab, tab === item.id && styles.tabActive]} onPress={() => setTab(item.id)}><AppText variant="secondary" style={tab === item.id ? styles.tabTextActive : undefined}>{item.label}</AppText></TouchableOpacity>)}</View>
+    <View style={styles.filters}><TouchableOpacity style={styles.filter} onPress={() => navigation.navigate("TaskFilter")}><Ionicons name="options-outline" size={18} color={colors.textPrimary} /><AppText variant="meta">Все категории</AppText><Ionicons name="chevron-down" size={15} color={colors.textSecondary} /></TouchableOpacity><TouchableOpacity style={styles.filter} onPress={() => navigation.navigate("MainTabs", { screen: "Map" })}><Ionicons name="location-outline" size={18} color={colors.textPrimary} /><AppText variant="meta">Рядом</AppText></TouchableOpacity></View>
+    {loading ? <View style={styles.skeletons}>{[0, 1, 2, 3].map((item) => <Skeleton key={item} style={styles.skeleton} />)}</View> : <FlatList data={items} keyExtractor={(item) => String(item.id)} renderItem={({ item }) => <TaskCardRow task={item} onPress={() => navigation.navigate("TaskDetail", { taskId: String(item.id) })} />} contentContainerStyle={[styles.content, items.length === 0 && styles.emptyContent]} ItemSeparatorComponent={() => <View style={styles.separator} />} showsVerticalScrollIndicator={false} ListEmptyComponent={<EmptyState title={error ? "Заявки недоступны" : tab === "mine" ? "У вас пока нет заявок" : tab === "responses" ? "Откликов пока нет" : "Нет доступных заявок"} description={error || (tab === "mine" ? "Создайте заявку с помощью AI." : "Новые предложения появятся здесь.")} icon={error ? "cloud-offline-outline" : "document-text-outline"} action={error ? <Button label="Повторить" variant="secondary" onPress={() => void load()} /> : tab === "mine" ? <Button label="Создать заявку" onPress={() => navigation.navigate("AIRequest")} /> : undefined} />} />}
+  </TabScreenLayout>;
+}
+
+const styles = StyleSheet.create({ root: { flex: 1 }, header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md }, headerButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }, tabs: { flexDirection: "row", marginHorizontal: spacing.md, padding: 3, borderRadius: radius.lg, backgroundColor: colors.surfaceSecondary }, tab: { flex: 1, minHeight: 40, borderRadius: radius.md, alignItems: "center", justifyContent: "center" }, tabActive: { backgroundColor: colors.accent }, tabTextActive: { fontWeight: "600" }, filters: { flexDirection: "row", gap: spacing.sm, padding: spacing.md }, filter: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: spacing.xs, borderRadius: radius.full, backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.md }, skeletons: { padding: spacing.md, gap: spacing.md }, skeleton: { height: 132, borderRadius: radius.lg }, content: { padding: spacing.md, paddingBottom: spacing.xxl }, emptyContent: { flexGrow: 1, justifyContent: "center" }, separator: { height: spacing.md } });

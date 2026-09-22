@@ -1,0 +1,39 @@
+import React, { useEffect, useState } from "react";
+import { Alert, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppText, Button, Chip, EmptyState, Skeleton } from "../components/ui";
+import { apiFetch, fileUrl } from "../src/api";
+import { colors, radius, spacing } from "../src/theme";
+import type { Application, Task } from "../src/types/proffi";
+import type { RootStackParamList } from "../src/navigation/types";
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+type R = RouteProp<RootStackParamList, "ApplicationDetail">;
+
+export default function ApplicationDetailScreen() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<R>();
+  const [application, setApplication] = useState<Application | null>(null);
+  const [task, setTask] = useState<Task | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { Promise.all([apiFetch(`/tasks/${params.taskId}`, { method: "GET" }), apiFetch(`/tasks/${params.taskId}/applications`, { method: "GET" })]).then(([taskData, rows]) => { setTask(taskData); setApplication((Array.isArray(rows) ? rows : []).find((item: Application) => String(item.id) === params.applicationId) || null); }).finally(() => setLoading(false)); }, [params.applicationId, params.taskId]);
+  const accept = async () => { if (!application) return; setBusy(true); try { const response = await apiFetch(`/applications/${application.id}/accept`, { method: "POST" }); navigation.replace("MasterSelected", { taskId: params.taskId, specialistId: application.specialist_id, chatId: response?.chat_id ? String(response.chat_id) : undefined }); } catch (error) { Alert.alert("Не удалось выбрать мастера", error instanceof Error ? error.message : String(error)); } finally { setBusy(false); } };
+  if (loading) return <SafeAreaView style={styles.root}><View style={styles.loading}><Skeleton style={styles.heroSkeleton} /><Skeleton style={styles.blockSkeleton} /><Skeleton style={styles.blockSkeleton} /></View></SafeAreaView>;
+  if (!application) return <SafeAreaView style={styles.root}><EmptyState title="Отклик не найден" action={<Button label="Назад" variant="secondary" onPress={() => navigation.goBack()} />} /></SafeAreaView>;
+  const specialist = application.specialist;
+  const avatar = fileUrl(specialist?.avatar);
+  const portfolio = (specialist?.portfolio || []).slice(0, 4);
+  return <SafeAreaView style={styles.root} edges={["top", "bottom", "left", "right"]}><View style={styles.header}><TouchableOpacity style={styles.iconButton} onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={24} color={colors.textPrimary} /></TouchableOpacity><AppText variant="screenTitle" style={styles.headerTitle}>Отклик мастера</AppText><View style={styles.iconButton} /></View><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <TouchableOpacity style={styles.profile} onPress={() => navigation.navigate("PublicProfile", { specialistId: application.specialist_id })}>{avatar ? <Image source={{ uri: avatar }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Ionicons name="person" size={30} color={colors.textSecondary} /></View>}<View style={styles.flex}><AppText variant="section">{application.specialist_name}</AppText><View style={styles.rating}>{specialist ? <><Ionicons name="star" size={16} color="#F5B800" /><AppText variant="secondary">{Number(specialist.rating || 0).toFixed(1)} ({specialist.reviews_count || 0})</AppText></> : null}</View><AppText variant="meta" tone="secondary">{application.specialist_city || "Мастер TREABO"}</AppText></View><Ionicons name="chevron-forward" size={20} color={colors.textTertiary} /></TouchableOpacity>
+    <View style={styles.metrics}><Metric value={specialist?.reviews_count ? `${specialist.reviews_count}+` : "—"} label="отзывов" /><Metric value={specialist?.is_online ? "Онлайн" : "—"} label="статус" /><Metric value={specialist?.is_verified ? "Да" : "—"} label="проверен" /></View>
+    <View style={styles.message}><View style={styles.sectionHead}><AppText variant="bodyMedium">Сообщение от мастера</AppText><AppText variant="meta" tone="secondary">{application.created_at ? new Date(application.created_at).toLocaleDateString("ru-RU") : ""}</AppText></View><AppText variant="body" style={styles.messageText}>{application.message}</AppText></View>
+    <View style={styles.offer}>{application.price ? <View><AppText variant="meta" tone="secondary">Предложенная цена</AppText><AppText variant="screenTitle">{Number(application.price).toLocaleString("ru-RU")} ₽</AppText></View> : <Chip label="Цена по договорённости" />}{task?.deadline ? <View><AppText variant="meta" tone="secondary">Срок заявки</AppText><AppText variant="bodyMedium">{task.deadline}</AppText></View> : null}</View>
+    {portfolio.length ? <View><AppText variant="section" style={styles.sectionTitle}>Примеры работ</AppText><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.portfolio}>{portfolio.map((photo, index) => { const uri = fileUrl(photo); return uri ? <Image key={`${uri}-${index}`} source={{ uri }} style={styles.portfolioImage} /> : null; })}</ScrollView></View> : null}
+  </ScrollView><View style={styles.footer}><Button label="Выбрать мастера" loading={busy} disabled={application.status !== "pending"} onPress={() => void accept()} /></View></SafeAreaView>;
+}
+function Metric({ value, label }: { value: string; label: string }) { return <View style={styles.metric}><AppText variant="bodyMedium">{value}</AppText><AppText variant="meta" tone="secondary">{label}</AppText></View>; }
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.background }, flex: { flex: 1 }, loading: { padding: spacing.lg, gap: spacing.lg }, heroSkeleton: { height: 92, borderRadius: radius.xl }, blockSkeleton: { height: 140, borderRadius: radius.xl }, header: { minHeight: 62, flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.sm }, iconButton: { width: 48, height: 48, alignItems: "center", justifyContent: "center" }, headerTitle: { flex: 1, textAlign: "center" }, content: { padding: spacing.lg, paddingBottom: spacing.xxl }, profile: { minHeight: 86, flexDirection: "row", alignItems: "center", gap: spacing.md }, avatar: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.surfaceSecondary }, avatarFallback: { width: 70, height: 70, borderRadius: 35, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }, rating: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 }, metrics: { flexDirection: "row", gap: spacing.sm, marginVertical: spacing.lg }, metric: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg, padding: spacing.md }, message: { backgroundColor: colors.surfaceSecondary, borderRadius: radius.xl, padding: spacing.lg }, sectionHead: { flexDirection: "row", justifyContent: "space-between" }, messageText: { marginTop: spacing.md }, offer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider }, sectionTitle: { marginTop: spacing.lg }, portfolio: { gap: spacing.sm, paddingTop: spacing.sm }, portfolioImage: { width: 132, height: 104, borderRadius: radius.md, backgroundColor: colors.surfaceSecondary }, footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider } });

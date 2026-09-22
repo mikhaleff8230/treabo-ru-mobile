@@ -216,13 +216,7 @@ export default function PhoneAuthScreen() {
               />
             </View>
 
-            {otpChannel === "wcall" ? (
-              <View style={styles.waitCallBox}>
-                <Text style={styles.waitCallText}>Позвоните с подтверждаемого телефона на номер</Text>
-                <Text style={styles.waitCallNumber} onPress={() => void Linking.openURL(`tel:${callTo}`)}>{callTo}</Text>
-                <Text style={styles.waitCallText}>Звонок автоматически сбросится.</Text>
-              </View>
-            ) : <TextInput
+            <TextInput
               style={styles.input}
               accessibilityLabel="Имя"
               testID="register-name"
@@ -231,7 +225,7 @@ export default function PhoneAuthScreen() {
               autoCapitalize="words"
               value={name}
               onChangeText={setName}
-            />}
+            />
 
             <TextInput
               style={styles.input}
@@ -269,16 +263,11 @@ export default function PhoneAuthScreen() {
           </>
         ) : (
           <>
-            <TextInput
-              style={styles.input}
-              accessibilityLabel="Код из Telegram"
-              placeholder="Код из Telegram"
-              placeholderTextColor={colors.neutral400}
-              keyboardType="number-pad"
-              value={otpCode}
-              onChangeText={setOtpCode}
-              maxLength={8}
-            />
+            {otpChannel === "wcall" ? <View style={styles.waitCallBox}>
+              <Text style={styles.waitCallText}>Позвоните с подтверждаемого телефона на номер</Text>
+              <Text style={styles.waitCallNumber} onPress={() => void Linking.openURL(`tel:${callTo}`)}>{callTo}</Text>
+              <Text style={styles.waitCallText}>Звонок автоматически сбросится.</Text>
+            </View> : <TextInput style={styles.input} accessibilityLabel="Код из Telegram" placeholder="Код из Telegram" placeholderTextColor={colors.neutral400} keyboardType="number-pad" value={otpCode} onChangeText={setOtpCode} maxLength={8} />}
             <TouchableOpacity
               style={[styles.cta, !canVerify && styles.ctaDisabled]}
               onPress={onVerifyOtp}

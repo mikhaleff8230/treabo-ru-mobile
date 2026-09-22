@@ -44,6 +44,17 @@ export async function leaveProffiChat(chatId: string | number): Promise<void> {
   if (instance && typeof instance.leave === "function") instance.leave(`proffi.chat.${chatId}`);
 }
 
+export async function subscribeMessengerConversation(
+  conversationId: string | number,
+  onMessage: (payload: any) => void,
+): Promise<() => void> {
+  const instance = await getEcho();
+  if (!instance) return () => undefined;
+  const name = `messenger.conversation.${conversationId}`;
+  instance.private(name).listen(".message.sent", onMessage);
+  return () => instance.leave(name);
+}
+
 export function resetEcho(): void {
   echo?.disconnect();
   echo = null;

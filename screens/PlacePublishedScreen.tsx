@@ -1,14 +1,52 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { AppText, Button, Chip, Skeleton } from "../components/ui";
+import { TreaboLogo } from "../components/TreaboLogo";
 import { fileUrl } from "../src/api";
 import { getPlace } from "../src/services/places";
-import { colors } from "../src/theme";
+import { colors, radius, spacing } from "../src/theme";
 import type { Place } from "../src/types/place";
 import type { RootStackParamList } from "../src/navigation/types";
-type Nav = NativeStackNavigationProp<RootStackParamList>; type R = RouteProp<RootStackParamList, "PlacePublished">;
-export default function PlacePublishedScreen() { const navigation = useNavigation<Nav>(); const { params } = useRoute<R>(); const [place, setPlace] = useState<Place | null>(null); useEffect(() => { getPlace(params.placeId).then(setPlace).catch(() => undefined); }, [params.placeId]); const image = fileUrl(place?.cover?.thumbnail || place?.cover?.url); return <SafeAreaView style={styles.root}><View style={styles.top}><Text style={styles.logo}>treabo<Text style={{ color: colors.accent }}>●</Text></Text><TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}><Text style={styles.continue}>Продолжить</Text></TouchableOpacity></View><View style={styles.success}><View style={styles.check}><Ionicons name="checkmark" size={62} color="#0AAA37" /></View><Text style={styles.title}>Работа опубликована!</Text><Text style={styles.subtitle}>Ваша работа уже на карте и в ленте.{`\n`}Теперь её могут увидеть новые клиенты.</Text>{place ? <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("PlaceDetail", { placeId: place.id })}>{image ? <Image source={{ uri: image }} style={styles.image} /> : <View style={styles.image}><ActivityIndicator /></View>}<View style={styles.cardCopy}><Text numberOfLines={2} style={styles.cardTitle}>{place.title}</Text><Text style={styles.city}>⌖ {place.city}</Text><Text style={styles.tag}>{place.category?.name}</Text></View><Ionicons name="chevron-forward" size={24} color={colors.black} /></TouchableOpacity> : null}<View style={styles.promo}><Ionicons name="stats-chart" size={29} color={colors.black} /><View style={{ flex: 1 }}><Text style={styles.promoTitle}>Поднимите работу в поиске</Text><Text style={styles.promoText}>Больше просмотров и клиентов</Text></View><TouchableOpacity style={styles.promote}><Text style={styles.promoteText}>Продвигать</Text></TouchableOpacity></View><TouchableOpacity style={styles.primary} onPress={() => navigation.replace("CreatePlace")}><Text style={styles.primaryText}>Добавить ещё работу</Text></TouchableOpacity><TouchableOpacity style={styles.secondary} onPress={() => navigation.navigate("MainTabs", { screen: "Map" })}><Text style={styles.secondaryText}>Перейти на карту</Text></TouchableOpacity><TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}><Text style={styles.home}>Главная</Text></TouchableOpacity></View></SafeAreaView>; }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.white, paddingHorizontal: 18 }, top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 70 }, logo: { fontSize: 34, fontWeight: "800", letterSpacing: -2 }, continue: { color: "#5D6980", textDecorationLine: "underline" }, success: { flex: 1, alignItems: "center", paddingTop: 22 }, check: { width: 126, height: 126, borderRadius: 63, backgroundColor: "#EFFBE9", alignItems: "center", justifyContent: "center" }, title: { fontSize: 29, fontWeight: "900", marginTop: 20 }, subtitle: { color: "#74809A", textAlign: "center", fontSize: 16, lineHeight: 22, marginTop: 8 }, card: { width: "100%", minHeight: 146, borderRadius: 22, backgroundColor: colors.white, flexDirection: "row", alignItems: "center", gap: 14, padding: 12, marginTop: 24, shadowColor: "#162033", shadowOpacity: .08, shadowRadius: 15, elevation: 3 }, image: { width: 126, height: 116, borderRadius: 16, backgroundColor: "#F0F2F5" }, cardCopy: { flex: 1 }, cardTitle: { fontSize: 18, lineHeight: 22, fontWeight: "900" }, city: { color: "#74809A", marginTop: 8 }, tag: { alignSelf: "flex-start", backgroundColor: "#F1F3F6", borderRadius: 12, paddingHorizontal: 11, paddingVertical: 7, marginTop: 8 }, promo: { width: "100%", minHeight: 86, borderRadius: 20, padding: 16, flexDirection: "row", alignItems: "center", gap: 11, backgroundColor: "#F2FAE9", marginTop: 17 }, promoTitle: { fontSize: 16, fontWeight: "900" }, promoText: { color: "#74809A", fontSize: 12, marginTop: 3 }, promote: { backgroundColor: colors.accent, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 13 }, promoteText: { fontWeight: "900" }, primary: { width: "100%", minHeight: 60, borderRadius: 20, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", marginTop: 24 }, primaryText: { fontSize: 18, fontWeight: "900" }, secondary: { width: "100%", minHeight: 58, borderRadius: 20, backgroundColor: "#F1F3F6", alignItems: "center", justifyContent: "center", marginTop: 10 }, secondaryText: { fontSize: 18, fontWeight: "900" }, home: { fontSize: 17, fontWeight: "700", marginTop: 19 } });
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+type R = RouteProp<RootStackParamList, "PlacePublished">;
+
+export default function PlacePublishedScreen() {
+  const navigation = useNavigation<Nav>();
+  const { params } = useRoute<R>();
+  const [place, setPlace] = useState<Place | null>(null);
+  useEffect(() => { getPlace(params.placeId).then(setPlace).catch(() => setPlace(null)); }, [params.placeId]);
+  const image = fileUrl(place?.cover?.thumbnail || place?.cover?.url);
+  return <SafeAreaView style={styles.root} edges={["top", "left", "right"]}>
+    <View style={styles.top}><TreaboLogo size="compact" /><TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}><AppText variant="secondary" tone="secondary">Продолжить</AppText></TouchableOpacity></View>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.check}><Ionicons name="checkmark" size={58} color={colors.success} /></View>
+      <AppText variant="display" style={styles.center}>Работа опубликована!</AppText>
+      <AppText variant="body" tone="secondary" style={styles.subtitle}>Ваш Плейс уже доступен в ленте, поиске и на карте.</AppText>
+
+      {place ? <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={() => navigation.navigate("PlaceDetail", { placeId: place.id })}>
+        {image ? <Image source={{ uri: image }} style={styles.image} /> : <View style={styles.image}><Skeleton style={StyleSheet.absoluteFill} /></View>}
+        <View style={styles.cardCopy}><AppText variant="section" numberOfLines={2}>{place.title}</AppText><View style={styles.location}><Ionicons name="location-outline" size={17} color={colors.textSecondary} /><AppText variant="secondary" tone="secondary">{place.city || "Город не указан"}</AppText></View>{place.category?.name ? <View style={styles.chip}><Chip label={place.category.name} /></View> : null}</View>
+        <Ionicons name="chevron-forward" size={22} color={colors.textSecondary} />
+      </TouchableOpacity> : <Skeleton style={styles.cardSkeleton} />}
+
+      <View style={styles.promo}><View style={styles.promoIcon}><Ionicons name="sparkles-outline" size={24} color={colors.textPrimary} /></View><View style={styles.cardCopy}><AppText variant="bodyMedium">Больше клиентов с PRO</AppText><AppText variant="meta" tone="secondary">Плейсы в PRO-профиле получают больше просмотров.</AppText></View><Ionicons name="chevron-forward" size={20} color={colors.textSecondary} /></View>
+
+      <Button label="Посмотреть Плейс" onPress={() => navigation.navigate("PlaceDetail", { placeId: params.placeId })} style={styles.firstButton} />
+      <Button label="Добавить ещё одну работу" variant="secondary" onPress={() => navigation.replace("CreatePlace")} style={styles.secondaryButton} />
+      <Button label="Перейти на карту" variant="text" onPress={() => navigation.navigate("MainTabs", { screen: "Map" })} />
+    </ScrollView>
+  </SafeAreaView>;
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background }, top: { minHeight: 60, paddingHorizontal: spacing.lg, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, content: { alignItems: "center", padding: spacing.lg, paddingBottom: spacing.xxl }, center: { textAlign: "center", marginTop: spacing.lg }, subtitle: { maxWidth: 310, textAlign: "center", marginTop: spacing.sm },
+  check: { width: 112, height: 112, borderRadius: 56, backgroundColor: colors.successSoft, alignItems: "center", justifyContent: "center", marginTop: spacing.lg },
+  card: { width: "100%", minHeight: 142, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.sm, marginTop: spacing.xl }, cardSkeleton: { width: "100%", height: 142, borderRadius: radius.xl, marginTop: spacing.xl }, image: { width: 124, height: 122, borderRadius: radius.lg, backgroundColor: colors.surfaceSecondary, overflow: "hidden" }, cardCopy: { flex: 1 }, location: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: spacing.sm }, chip: { alignSelf: "flex-start", marginTop: spacing.sm },
+  promo: { width: "100%", minHeight: 82, borderRadius: radius.xl, padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.md, backgroundColor: colors.accentSoft, marginTop: spacing.lg }, promoIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
+  firstButton: { marginTop: spacing.xl }, secondaryButton: { marginTop: spacing.sm },
+});

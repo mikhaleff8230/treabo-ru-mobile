@@ -524,11 +524,20 @@ export default function TaskDetailScreen() {
           </CardLight>
         )}
 
+        {isOwner && task.accepted_specialist_id && ["in_progress", "accepted", "completed"].includes(task.status) ? (
+          <TouchableOpacity style={styles.completionCard} onPress={() => navigation.navigate("WorkCompletion", { taskId })}>
+            <View style={styles.completionIcon}><Ionicons name={task.status === "completed" ? "checkmark-circle" : "hammer-outline"} size={24} color={colors.textPrimary} /></View>
+            <View style={styles.completionCopy}><Text style={styles.completionTitle}>{task.status === "completed" ? "Работа завершена" : "Выполнение работы"}</Text><Text style={styles.completionText}>{task.status === "completed" ? "Оставьте отзыв о мастере" : "Следите за этапами и подтвердите завершение"}</Text></View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        ) : null}
+
         {isOwner && (
           <View style={styles.section}>
-            <Text style={styles.h2}>
-              {t("applications")} <Text style={styles.mutedCount}>({apps.length})</Text>
-            </Text>
+            <TouchableOpacity style={styles.applicationsHead} onPress={() => navigation.navigate("Applications", { taskId })}>
+              <Text style={styles.h2}>{t("applications")} <Text style={styles.mutedCount}>({apps.length})</Text></Text>
+              <View style={styles.applicationsAll}><Text style={styles.applicationsAllText}>Все</Text><Ionicons name="chevron-forward" size={18} color={colors.textSecondary} /></View>
+            </TouchableOpacity>
             {apps.length === 0 && <Text style={styles.muted}>{t("no_applications")}</Text>}
             {apps.map((a) => (
               <CardLight key={a.id} style={styles.appCard}>
@@ -650,6 +659,9 @@ const styles = StyleSheet.create({
   errorBtn: { paddingHorizontal: 24 },
   scrollFlex: { flex: 1 },
   scroll: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
+  applicationsHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  applicationsAll: { flexDirection: "row", alignItems: "center", gap: 2 },
+  applicationsAllText: { color: colors.textSecondary, fontSize: 14 },
   h1: { ...typography.title, fontSize: 26, marginBottom: 16, lineHeight: 32 },
   h2: { ...typography.headline, fontSize: 18, marginBottom: 8 },
   h2Small: { ...typography.headline, fontSize: 16 },
@@ -738,6 +750,11 @@ const styles = StyleSheet.create({
   rowSm: { flexDirection: "row", alignItems: "center", gap: 8 },
   rowSmText: { fontSize: 14, flex: 1 },
   section: { marginTop: 8 },
+  completionCard: { minHeight: 82, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: colors.accentSoft, borderRadius: radii.xl, padding: 14, marginBottom: 16 },
+  completionIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
+  completionCopy: { flex: 1 },
+  completionTitle: { ...typography.bodyMedium, color: colors.textPrimary },
+  completionText: { ...typography.meta, color: colors.textSecondary, marginTop: 2 },
   mutedCount: { fontWeight: "400", color: colors.neutral400 },
   appCard: { marginTop: 12 },
   appHead: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },

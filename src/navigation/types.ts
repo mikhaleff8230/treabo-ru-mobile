@@ -17,16 +17,35 @@ export type RootStackParamList = {
 
   // Canonical TREABO routes.
   AIRequest: undefined;
+  RequestPublished: { taskId: string };
+  SuitableMasters: { taskId: string };
   CreatePlace: undefined;
   PlacePublished: { placeId: string };
   PlaceDetail: { placeId: string };
   Search: { filtersOpen?: boolean } | undefined;
   Applications: { taskId: string };
+  ApplicationDetail: { taskId: string; applicationId: string };
+  MasterSelected: { taskId: string; specialistId: string; chatId?: string };
   ChatList: undefined;
   Chat: { chatId: string };
   PublicProfile: { specialistId: string; chatId?: string };
+  MyPlaces: undefined;
+  ProfessionalProfile: undefined;
+  Notifications: undefined;
+  NotificationDetail: { notificationId: string };
+  NotificationSettings: undefined;
+  MessengerChat: { conversationId: string };
+  MessengerArchive: undefined;
+  MessengerSearch: undefined;
+  MessengerContact: { conversationId: string };
+  MessengerCall: { conversationId: string; mode: "audio" | "video"; callId?: string };
+  MessengerForward: { messageId: string };
+  MessengerMedia: { conversationId: string };
   Favorites: undefined;
   Balance: undefined;
+  BalanceHistory: undefined;
+  WorkCompletion: { taskId: string };
+  ReviewComposer: { taskId: string; specialistId: string };
   Settings: undefined;
 
   // Compatibility routes used by existing screens and external links.

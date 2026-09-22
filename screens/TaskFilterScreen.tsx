@@ -1,94 +1,43 @@
-import React, { useState } from "react";
-import { StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { ScreenLayout } from "../components/ScreenLayout";
-import { PrimaryButton } from "../components/PrimaryButton";
-import { colors, spacing } from "../src/theme";
+import { AppText, Button, Chip } from "../components/ui";
+import { apiFetch } from "../src/api";
+import { colors, radius, spacing } from "../src/theme";
 import type { RootStackParamList } from "../src/navigation/types";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "TaskFilter">;
 type R = RouteProp<RootStackParamList, "TaskFilter">;
+type Category = { id: string; name_ru?: string; name?: string };
 
 export default function TaskFilterScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
+  const [category, setCategory] = useState(route.params?.category_id || route.params?.category || "");
   const [city, setCity] = useState(route.params?.city || "");
   const [min, setMin] = useState(route.params?.budget_min || "");
   const [max, setMax] = useState(route.params?.budget_max || "");
-  const [discount, setDiscount] = useState(false);
-  const [sortNew, setSortNew] = useState(true);
-
-  const apply = () => {
-    navigation.navigate("TasksList", {
-      category: route.params?.category,
-      category_id: route.params?.category_id,
-      q: route.params?.q,
-      city: city.trim() || undefined,
-      budget_min: min || undefined,
-      budget_max: max || undefined,
-    });
-  };
-
-  return (
-    <ScreenLayout>
-      <View style={styles.root}>
-        <View style={styles.top}>
-          <TouchableOpacity onPress={() => navigation.goBack()}><Ionicons name="close-outline" size={28} color={colors.black} /></TouchableOpacity>
-          <TouchableOpacity onPress={() => { setCity(""); setMin(""); setMax(""); setDiscount(false); setSortNew(true); }}>
-            <Text style={styles.reset}>Сбросить</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.title}>Фильтр заказов</Text>
-        <Text style={styles.label}>Город</Text>
-        <TextInput
-          style={styles.cityInput}
-          placeholder="Укажите город"
-          placeholderTextColor={colors.neutral400}
-          value={city}
-          onChangeText={setCity}
-        />
-        <Text style={styles.label}>Ставка, ₽</Text>
-        <View style={styles.priceRow}>
-          <TextInput style={styles.priceInput} placeholder="от" keyboardType="number-pad" value={min} onChangeText={(v) => setMin(v.replace(/\D/g, ""))} />
-          <View style={styles.divider} />
-          <TextInput style={styles.priceInput} placeholder="до" keyboardType="number-pad" value={max} onChangeText={(v) => setMax(v.replace(/\D/g, ""))} />
-        </View>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchText}>Отклик со скидкой</Text>
-          <Switch value={discount} onValueChange={setDiscount} />
-        </View>
-        <Text style={styles.sectionTitle}>Сортировка заказов</Text>
-        <TouchableOpacity style={styles.radioRow} onPress={() => setSortNew(true)}>
-          <View><Text style={styles.radioTitle}>Сначала новые</Text><Text style={styles.radioSub}>Заказы, которые вы еще не видели</Text></View>
-          <Ionicons name={sortNew ? "radio-button-on" : "radio-button-off"} size={24} color={colors.black} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.radioRow} onPress={() => setSortNew(false)}>
-          <View><Text style={styles.radioTitle}>Сначала просмотренные</Text><Text style={styles.radioSub}>Заказы, которые вы открывали</Text></View>
-          <Ionicons name={!sortNew ? "radio-button-on" : "radio-button-off"} size={24} color={colors.neutral300} />
-        </TouchableOpacity>
-        <View style={styles.footer}><PrimaryButton title="Показать заказы" onPress={apply} /></View>
-      </View>
-    </ScreenLayout>
-  );
+  const [categories, setCategories] = useState<Category[]>([]);
+  useEffect(() => { apiFetch("/categories", { method: "GET", auth: false }).then((data) => setCategories(Array.isArray(data) ? data : data?.data || [])).catch(() => setCategories([])); }, []);
+  const reset = () => { setCategory(""); setCity(""); setMin(""); setMax(""); };
+  const apply = () => navigation.navigate("TasksList", { category_id: category || undefined, q: route.params?.q, city: city.trim() || undefined, budget_min: min || undefined, budget_max: max || undefined });
+  return <SafeAreaView style={styles.root} edges={["top", "bottom", "left", "right"]}>
+    <View style={styles.handle} />
+    <View style={styles.header}><AppText variant="screenTitle" style={styles.flex}>Фильтры</AppText><TouchableOpacity onPress={reset}><AppText variant="secondary" tone="secondary">Сбросить всё</AppText></TouchableOpacity><TouchableOpacity style={styles.close} onPress={() => navigation.goBack()}><Ionicons name="close" size={25} color={colors.textPrimary} /></TouchableOpacity></View>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <AppText variant="bodyMedium" style={styles.label}>Категория</AppText>
+      <View style={styles.chips}><Chip label="Все" selected={!category} onPress={() => setCategory("")} />{categories.map((item) => <Chip key={String(item.id)} label={item.name_ru || item.name || "Категория"} selected={String(item.id) === String(category)} onPress={() => setCategory(String(item.id))} />)}</View>
+      <AppText variant="bodyMedium" style={styles.label}>Локация</AppText>
+      <View style={styles.inputRow}><Ionicons name="location-outline" size={21} color={colors.textPrimary} /><TextInput style={styles.textInput} placeholder="Москва" placeholderTextColor={colors.textTertiary} value={city} onChangeText={setCity} /></View>
+      <AppText variant="bodyMedium" style={styles.label}>Бюджет</AppText>
+      <View style={styles.priceRow}><View style={styles.priceField}><AppText variant="meta" tone="secondary">От</AppText><TextInput style={styles.numberInput} placeholder="0 ₽" placeholderTextColor={colors.textTertiary} keyboardType="number-pad" value={min} onChangeText={(value) => setMin(value.replace(/\D/g, ""))} /></View><View style={styles.priceField}><AppText variant="meta" tone="secondary">До</AppText><TextInput style={styles.numberInput} placeholder="Без ограничений" placeholderTextColor={colors.textTertiary} keyboardType="number-pad" value={max} onChangeText={(value) => setMax(value.replace(/\D/g, ""))} /></View></View>
+      <View style={styles.info}><Ionicons name="information-circle-outline" size={21} color={colors.textSecondary} /><AppText variant="secondary" tone="secondary" style={styles.flex}>Результаты используют реальные категории, город и бюджет заявки.</AppText></View>
+    </ScrollView>
+    <View style={styles.footer}><Button label="Показать заявки" onPress={apply} /></View>
+  </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, padding: spacing.lg },
-  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 28 },
-  reset: { color: colors.neutral500, fontSize: 14 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 24 },
-  label: { fontSize: 15, marginBottom: 8 },
-  cityInput: { height: 56, borderRadius: 12, backgroundColor: colors.lavender50, paddingHorizontal: 16, fontSize: 15, color: colors.black, marginBottom: 22 },
-  priceRow: { height: 56, flexDirection: "row", borderRadius: 12, backgroundColor: colors.lavender50, alignItems: "center", marginBottom: 22 },
-  priceInput: { flex: 1, paddingHorizontal: 16, fontSize: 15, color: colors.black },
-  divider: { width: 1, height: 32, backgroundColor: colors.neutral100 },
-  switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 32 },
-  switchText: { fontSize: 15 },
-  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
-  radioRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 9 },
-  radioTitle: { fontSize: 15, color: colors.black },
-  radioSub: { fontSize: 12, color: colors.neutral400, marginTop: 2 },
-  footer: { marginTop: "auto" },
-});
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.background }, flex: { flex: 1 }, handle: { width: 52, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: "center", marginTop: spacing.sm }, header: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.lg }, close: { width: 40, height: 40, alignItems: "center", justifyContent: "center" }, content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl }, label: { marginTop: spacing.lg, marginBottom: spacing.sm }, chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }, inputRow: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: spacing.sm, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md }, textInput: { flex: 1, color: colors.textPrimary, fontSize: 15 }, priceRow: { flexDirection: "row", gap: spacing.md }, priceField: { flex: 1, minHeight: 62, borderRadius: radius.lg, backgroundColor: colors.surfaceSecondary, paddingHorizontal: spacing.md, justifyContent: "center" }, numberInput: { color: colors.textPrimary, fontSize: 15, paddingVertical: 2 }, info: { flexDirection: "row", alignItems: "flex-start", gap: spacing.sm, padding: spacing.md, backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg, marginTop: spacing.xl }, footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.divider } });

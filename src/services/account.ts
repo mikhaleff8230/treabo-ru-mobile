@@ -31,6 +31,12 @@ export type PendingDepositResult = {
   status?: string;
 };
 
+export type BalanceTransaction = {
+  id: string; type: "deposit" | "application_fee" | string; title: string;
+  description?: string | null; status?: string; amount: number;
+  direction: "income" | "expense"; currency?: string; task_id?: string | null; created_at?: string | null;
+};
+
 export async function fetchAccountSummary(): Promise<AccountSummary> {
   const response = await apiFetch("/balance", { method: "GET" });
   const data = response?.data || response || {};
@@ -63,4 +69,9 @@ export async function reportManualBalancePayment(depositId?: number): Promise<Ba
 export async function checkPendingBalanceDeposit(): Promise<PendingDepositResult> {
   const response = await apiFetch("/balance/check-pending", { method: "GET" });
   return response?.data || response;
+}
+
+export async function fetchBalanceTransactions(): Promise<BalanceTransaction[]> {
+  const response = await apiFetch("/balance/transactions", { method: "GET" });
+  return Array.isArray(response?.data) ? response.data : [];
 }

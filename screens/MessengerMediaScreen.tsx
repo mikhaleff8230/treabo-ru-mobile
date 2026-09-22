@@ -1,0 +1,17 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../src/navigation/types";
+import { fileUrl } from "../src/api";
+import { colors, spacing, typography } from "../src/theme";
+import { listMessages, type MessengerMessage } from "../src/services/messenger";
+
+type Nav = NativeStackNavigationProp<RootStackParamList>; type Route = RouteProp<RootStackParamList, "MessengerMedia">;
+const width = Dimensions.get("window").width;
+export default function MessengerMediaScreen() { const navigation = useNavigation<Nav>(); const route = useRoute<Route>(); const [messages, setMessages] = useState<MessengerMessage[] | null>(null); useEffect(() => { listMessages(route.params.conversationId).then(setMessages); }, [route.params.conversationId]); const media = useMemo(() => (messages || []).filter((item) => ["image", "video"].includes(item.kind) && fileUrl(item.metadata?.url || item.metadata?.path)), [messages]); return <SafeAreaView style={styles.root}><View style={styles.header}><TouchableOpacity style={styles.icon} onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={27} color={colors.white} /></TouchableOpacity><Text style={styles.title}>Медиа</Text><View style={styles.icon} /></View>{messages === null ? <ActivityIndicator style={styles.loader} color={colors.accent} /> : <FlatList horizontal pagingEnabled data={media} keyExtractor={(item) => item.id} renderItem={({ item, index }) => <View style={styles.slide}><Text style={styles.counter}>{index + 1}/{media.length}</Text>{item.kind === "image" ? <Image source={{ uri: fileUrl(item.metadata?.url || item.metadata?.path)! }} style={styles.image} resizeMode="contain" /> : <MediaVideo uri={fileUrl(item.metadata?.url || item.metadata?.path)!} />}</View>} ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyText}>В диалоге пока нет медиа</Text></View>} />}</SafeAreaView>; }
+function MediaVideo({ uri }: { uri: string }) { const player = useVideoPlayer(uri); return <VideoView player={player} style={styles.video} nativeControls contentFit="contain" />; }
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: "#111" }, header: { height: 58, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md }, icon: { width: 42, height: 42, alignItems: "center", justifyContent: "center" }, title: { ...typography.section, color: colors.white }, loader: { marginTop: 120 }, slide: { width, flex: 1, justifyContent: "center" }, counter: { ...typography.meta, color: colors.white, textAlign: "center", marginBottom: spacing.md }, image: { width, height: "76%" }, video: { width, height: "72%", alignItems: "center", justifyContent: "center", gap: spacing.sm }, videoText: { ...typography.body, color: colors.white }, empty: { width, flex: 1, alignItems: "center", justifyContent: "center" }, emptyText: { ...typography.secondary, color: colors.white } });

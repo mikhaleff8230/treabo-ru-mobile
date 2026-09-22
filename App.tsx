@@ -9,6 +9,9 @@ import { KeyboardRoot } from "./src/components/KeyboardRoot";
 import { AppErrorBoundary } from "./src/components/AppErrorBoundary";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { MobileUpdateGate } from "./src/components/MobileUpdateGate";
+import { registerGlobals } from "@livekit/react-native";
+
+registerGlobals();
 
 export default function App() {
   return (

@@ -1,11 +1,12 @@
 import React from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { colors } from "../../src/theme";
+import { API_BASE } from "../../src/api";
 import type { AuthStackParamList } from "../../src/navigation/types";
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, "AuthOptions">;
@@ -16,6 +17,7 @@ const collage = require("../../assets/auth-work-collage.png");
 export default function AuthOptionsScreen() {
   const navigation = useNavigation<Nav>();
   const unavailable = (provider: string) => Alert.alert(provider, "Подключение этого способа входа будет добавлено отдельно.");
+  const googleSignIn = () => void Linking.openURL(`${API_BASE}/api/proffi/oauth/google/redirect?role=customer&return_url=${encodeURIComponent("treabo-client://home")}`);
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom", "left", "right"]}>
@@ -44,7 +46,7 @@ export default function AuthOptionsScreen() {
             <Ionicons name="paper-plane" size={26} color={colors.white} />
             <Text style={styles.socialLightText}>Продолжить с Telegram</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.social, styles.google]} onPress={() => unavailable("Google")} activeOpacity={0.86}>
+          <TouchableOpacity style={[styles.social, styles.google]} onPress={googleSignIn} activeOpacity={0.86}>
             <Text style={styles.googleMark}>G</Text>
             <Text style={styles.socialDarkText}>Продолжить с Google</Text>
           </TouchableOpacity>

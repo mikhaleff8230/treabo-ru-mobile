@@ -22,14 +22,34 @@ import CreatePlaceScreen from "../../screens/CreatePlaceScreen";
 import PlacePublishedScreen from "../../screens/PlacePublishedScreen";
 import RequestsHubScreen from "../../screens/RequestsHubScreen";
 import ProfileHubScreen from "../../screens/ProfileHubScreen";
+import MyPlacesScreen from "../../screens/MyPlacesScreen";
+import ProfessionalProfileScreen from "../../screens/ProfessionalProfileScreen";
+import NotificationsScreen from "../../screens/NotificationsScreen";
+import NotificationDetailScreen from "../../screens/NotificationDetailScreen";
+import NotificationSettingsScreen from "../../screens/NotificationSettingsScreen";
+import BalanceHistoryScreen from "../../screens/BalanceHistoryScreen";
+import WorkCompletionScreen from "../../screens/WorkCompletionScreen";
+import ReviewComposerScreen from "../../screens/ReviewComposerScreen";
 import FavoritesScreen from "../../screens/FavoritesScreen";
 import MapScreen from "../../screens/MapScreen";
 import TasksListScreen from "../../screens/TasksListScreen";
 import TaskSearchScreen from "../../screens/TaskSearchScreen";
 import TaskFilterScreen from "../../screens/TaskFilterScreen";
 import ProfileScreen from "../../screens/ProfileScreen";
-import ChatsScreen from "../../screens/ChatsScreen";
+import MessengerListScreen from "../../screens/MessengerListScreen";
+import MessengerChatScreen from "../../screens/MessengerChatScreen";
+import MessengerArchiveScreen from "../../screens/MessengerArchiveScreen";
+import MessengerSearchScreen from "../../screens/MessengerSearchScreen";
+import MessengerContactScreen from "../../screens/MessengerContactScreen";
+import MessengerCallScreen from "../../screens/MessengerCallScreen";
+import MessengerForwardScreen from "../../screens/MessengerForwardScreen";
+import MessengerMediaScreen from "../../screens/MessengerMediaScreen";
 import AiCreateRequestScreen from "../../screens/AiCreateRequestScreen";
+import RequestPublishedScreen from "../../screens/RequestPublishedScreen";
+import SuitableMastersScreen from "../../screens/SuitableMastersScreen";
+import ApplicationsScreen from "../../screens/ApplicationsScreen";
+import ApplicationDetailScreen from "../../screens/ApplicationDetailScreen";
+import MasterSelectedScreen from "../../screens/MasterSelectedScreen";
 import TaskDetailScreen from "../../screens/TaskDetailScreen";
 import TaskApplyScreen from "../../screens/TaskApplyScreen";
 import CreateTaskScreen from "../../screens/CreateTaskScreen";
@@ -208,15 +228,34 @@ function LoggedInStack() {
       <AppStackNav.Screen name="DesignSystemShowcase" component={DesignSystemShowcaseScreen} />
 
       <AppStackNav.Screen name="AIRequest" component={AiCreateRequestScreen} />
+      <AppStackNav.Screen name="RequestPublished" component={RequestPublishedScreen} />
+      <AppStackNav.Screen name="SuitableMasters" component={SuitableMastersScreen} />
       <AppStackNav.Screen name="Search" component={PlaceSearchScreen} />
       <AppStackNav.Screen name="CreatePlace" component={CreatePlaceScreen} />
       <AppStackNav.Screen name="PlacePublished" component={PlacePublishedScreen} />
       <AppStackNav.Screen name="PlaceDetail" component={PlaceDetailScreen} />
-      <AppStackNav.Screen name="Applications" component={TaskDetailScreen} />
-      <AppStackNav.Screen name="ChatList" component={ChatsScreen} />
+      <AppStackNav.Screen name="Applications" component={ApplicationsScreen} />
+      <AppStackNav.Screen name="ApplicationDetail" component={ApplicationDetailScreen} />
+      <AppStackNav.Screen name="MasterSelected" component={MasterSelectedScreen} />
+      <AppStackNav.Screen name="ChatList" component={MessengerListScreen} />
       <AppStackNav.Screen name="Chat" component={ChatDetailScreen} />
+      <AppStackNav.Screen name="MessengerChat" component={MessengerChatScreen} />
+      <AppStackNav.Screen name="MessengerArchive" component={MessengerArchiveScreen} />
+      <AppStackNav.Screen name="MessengerSearch" component={MessengerSearchScreen} />
+      <AppStackNav.Screen name="MessengerContact" component={MessengerContactScreen} />
+      <AppStackNav.Screen name="MessengerCall" component={MessengerCallScreen} />
+      <AppStackNav.Screen name="MessengerForward" component={MessengerForwardScreen} />
+      <AppStackNav.Screen name="MessengerMedia" component={MessengerMediaScreen} />
       <AppStackNav.Screen name="PublicProfile" component={SpecialistProfileScreen} />
+      <AppStackNav.Screen name="MyPlaces" component={MyPlacesScreen} />
+      <AppStackNav.Screen name="ProfessionalProfile" component={ProfessionalProfileScreen} />
+      <AppStackNav.Screen name="Notifications" component={NotificationsScreen} />
+      <AppStackNav.Screen name="NotificationDetail" component={NotificationDetailScreen} />
+      <AppStackNav.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <AppStackNav.Screen name="Balance" component={WalletScreen} />
+      <AppStackNav.Screen name="BalanceHistory" component={BalanceHistoryScreen} />
+      <AppStackNav.Screen name="WorkCompletion" component={WorkCompletionScreen} />
+      <AppStackNav.Screen name="ReviewComposer" component={ReviewComposerScreen} />
       <AppStackNav.Screen name="Favorites" component={FavoritesScreen} />
       <AppStackNav.Screen name="Settings" component={ProfileScreen} />
 
@@ -275,6 +314,8 @@ export function RootNavigator() {
             TaskDetail: "task/:taskId",
             Applications: "task/:taskId/applications",
             PublicProfile: "specialist/:specialistId",
+            MessengerChat: "messenger/:conversationId",
+            MessengerCall: "messenger/:conversationId/call",
           },
         },
       }}

@@ -112,6 +112,7 @@ export type Application = {
   specialist_id: string;
   specialist_name: string;
   specialist_city?: string | null;
+  specialist?: Specialist | null;
   message: string;
   price?: number | null;
   response_fee_mdl?: number | null;

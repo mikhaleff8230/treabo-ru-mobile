@@ -15,7 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ru.treabo.client",
-      "icon": "./assets/logo-client.png"
+      "icon": "./assets/logo-client.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Treabo использует камеру для фото, видео и видеозвонков.",
+        "NSMicrophoneUsageDescription": "Treabo использует микрофон для голосовых сообщений и звонков."
+      }
     },
     "android": {
       "package": "ru.treabo.client",
@@ -28,16 +32,19 @@
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
       [
         "expo-location",
         {
@@ -60,7 +67,8 @@
           "defaultChannel": "messages"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-audio"
     ],
     "extra": {
       "eas": {

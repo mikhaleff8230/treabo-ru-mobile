@@ -1,156 +1,23 @@
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { TabScreenLayout } from "../components/TabScreenLayout";
-import { CardLight } from "../components/CardLight";
-import { PrimaryButton } from "../components/PrimaryButton";
-import { colors, radii, spacing, typography } from "../src/theme";
-import {
-  checkPendingBalanceDeposit,
-  createBalanceDeposit,
-  fetchAccountSummary,
-  type AccountSummary,
-} from "../src/services/account";
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { checkPendingBalanceDeposit, createBalanceDeposit, fetchAccountSummary, type AccountSummary } from "../src/services/account";
+import { colors, radius, spacing, typography } from "../src/theme";
+import type { RootStackParamList } from "../src/navigation/types";
 
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+const amounts = [500, 1000, 2000, 5000];
 export default function WalletScreen() {
-  const [account, setAccount] = useState<AccountSummary | null>(null);
-  const [amount, setAmount] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
-  const [checking, setChecking] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    fetchAccountSummary()
-      .then(setAccount)
-      .catch((error) => Alert.alert("Ошибка", error instanceof Error ? error.message : String(error)))
-      .finally(() => setLoading(false));
-  };
-
+  const navigation = useNavigation<Nav>(); const [account, setAccount] = useState<AccountSummary | null>(null); const [amount, setAmount] = useState(1000); const [custom, setCustom] = useState(""); const [loading, setLoading] = useState(true); const [paying, setPaying] = useState(false);
+  const load = () => { setLoading(true); fetchAccountSummary().then(setAccount).catch((e) => Alert.alert("Ошибка", e instanceof Error ? e.message : String(e))).finally(() => setLoading(false)); };
   useEffect(load, []);
-
-  const normalizedAmount = Number(String(amount).replace(/\D/g, "")) || 0;
-
-  const startYookassaDeposit = async () => {
-    if (normalizedAmount < 100) {
-      Alert.alert("Минимальная сумма — 100 ₽", "Введите сумму пополнения не менее 100 ₽.");
-      return;
-    }
-    setPaying(true);
-    try {
-      const deposit = await createBalanceDeposit(normalizedAmount, "yookassa");
-      if (deposit.payment_url) {
-        await Linking.openURL(deposit.payment_url);
-      } else {
-        Alert.alert("Платеж создан", deposit.message || "Откройте страницу оплаты.");
-      }
-    } catch (error) {
-      Alert.alert("Ошибка пополнения", error instanceof Error ? error.message : String(error));
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const checkPending = async () => {
-    setChecking(true);
-    try {
-      const result = await checkPendingBalanceDeposit();
-      if (result.processed) {
-        Alert.alert("Баланс пополнен", `Зачислено ${Math.round(Number(result.amount || 0))} ₽.`);
-        load();
-      } else {
-        Alert.alert("Статус платежа", result.message || (result.has_pending ? "Платеж еще обрабатывается." : "Активных платежей нет."));
-      }
-    } catch (error) {
-      Alert.alert("Ошибка проверки", error instanceof Error ? error.message : String(error));
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  return (
-    <TabScreenLayout>
-      <ScrollView contentContainerStyle={styles.root} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Кошелек</Text>
-        {loading ? (
-          <ActivityIndicator color={colors.black} />
-        ) : (
-          <>
-            <CardLight style={styles.balanceCard}>
-              <Text style={styles.label}>Баланс</Text>
-              <Text style={styles.balance}>{Math.round(account?.balance ?? 0).toLocaleString("ru-RU")} ₽</Text>
-              <Text style={styles.sub}>
-                Бесплатных откликов сегодня: {account?.free_remaining_today ?? 0} из {account?.free_daily_limit ?? 5}
-              </Text>
-            </CardLight>
-
-            <View style={styles.grid}>
-              <Metric label="Потрачено" value={`${Math.round(account?.total_spent ?? 0)} ₽`} />
-              <Metric label="Пополнено" value={`${Math.round(account?.total_deposited ?? 0)} ₽`} />
-            </View>
-
-            <CardLight style={styles.depositCard}>
-              <Text style={styles.cardTitle}>Пополнить баланс</Text>
-              <TextInput
-                style={styles.input}
-                value={amount}
-                onChangeText={(value) => setAmount(value.replace(/\D/g, ""))}
-                keyboardType="number-pad"
-                placeholder="Сумма от 100 ₽"
-                placeholderTextColor={colors.neutral400}
-              />
-              <PrimaryButton title="Перейти к оплате" onPress={startYookassaDeposit} loading={paying} />
-              <PrimaryButton title="Проверить оплату" onPress={checkPending} loading={checking} variant="secondary" style={styles.secondaryAction} />
-            </CardLight>
-
-            <PrimaryButton title="Обновить баланс" onPress={load} variant="ghost" />
-          </>
-        )}
-      </ScrollView>
-    </TabScreenLayout>
-  );
+  const value = custom ? Number(custom.replace(/\D/g, "")) : amount;
+  const deposit = async () => { if (value < 100) { Alert.alert("Минимальная сумма — 100 ₽"); return; } setPaying(true); try { const result = await createBalanceDeposit(value, "yookassa"); if (result.payment_url) await Linking.openURL(result.payment_url); else Alert.alert("Платёж создан", result.message || "Проверьте статус оплаты."); } catch (e) { Alert.alert("Ошибка пополнения", e instanceof Error ? e.message : String(e)); } finally { setPaying(false); } };
+  const check = async () => { try { const result = await checkPendingBalanceDeposit(); Alert.alert(result.processed ? "Баланс пополнен" : "Статус платежа", result.message || "Проверка завершена"); if (result.processed) load(); } catch (e) { Alert.alert("Ошибка проверки", e instanceof Error ? e.message : String(e)); } };
+  return <SafeAreaView style={styles.root} edges={["top", "bottom", "left", "right"]}><View style={styles.header}><TouchableOpacity style={styles.icon} onPress={() => navigation.goBack()}><Ionicons name="chevron-back" size={27} color={colors.textPrimary} /></TouchableOpacity><Text style={styles.headerTitle}>Баланс и платежи</Text><TouchableOpacity style={styles.icon} onPress={() => navigation.navigate("BalanceHistory")}><Ionicons name="time-outline" size={24} color={colors.textPrimary} /></TouchableOpacity></View>{loading ? <ActivityIndicator style={styles.loader} /> : <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}><View style={styles.balanceCard}><Text style={styles.balanceLabel}>Ваш баланс</Text><Text style={styles.balance}>{Math.round(account?.balance || 0).toLocaleString("ru-RU")} ₽</Text><TouchableOpacity style={styles.history} onPress={() => navigation.navigate("BalanceHistory")}><Text style={styles.historyText}>История операций</Text><Ionicons name="chevron-forward" size={18} color={colors.textPrimary} /></TouchableOpacity></View><View style={styles.quota}><Metric label="Бесплатных откликов" value={`${account?.free_remaining_today || 0} из ${account?.free_daily_limit || 5}`} /><Metric label="Стоимость откликов" value={`${Math.round(account?.total_spent || 0)} ₽`} /></View><Text style={styles.section}>Пополнить баланс</Text><View style={styles.amounts}>{amounts.map((item) => <TouchableOpacity key={item} style={[styles.amount, !custom && amount === item && styles.amountActive]} onPress={() => { setAmount(item); setCustom(""); }}><Text style={styles.amountText}>{item.toLocaleString("ru-RU")} ₽</Text></TouchableOpacity>)}<View style={styles.amount}><TextInput style={styles.customInput} value={custom} onChangeText={(text) => setCustom(text.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Другая сумма" placeholderTextColor={colors.textSecondary} /></View></View><Text style={styles.section}>Способ оплаты</Text><View style={styles.payment}><View style={styles.paymentIcon}><Ionicons name="card-outline" size={25} color={colors.textPrimary} /></View><View style={styles.paymentCopy}><Text style={styles.paymentTitle}>ЮKassa</Text><Text style={styles.paymentText}>СБП, банковская карта, SberPay</Text></View><Ionicons name="checkmark-circle" size={24} color={colors.success} /></View><View style={styles.total}><View><Text style={styles.totalLabel}>Сумма пополнения</Text><Text style={styles.totalLabel}>Комиссия</Text><Text style={styles.totalTitle}>Итого к оплате</Text></View><View style={styles.totalRight}><Text style={styles.totalValue}>{value.toLocaleString("ru-RU")} ₽</Text><Text style={styles.totalValue}>0 ₽</Text><Text style={styles.totalStrong}>{value.toLocaleString("ru-RU")} ₽</Text></View></View><TouchableOpacity style={styles.primary} onPress={() => void deposit()} disabled={paying}>{paying ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={styles.primaryText}>Перейти к оплате</Text>}</TouchableOpacity><TouchableOpacity style={styles.check} onPress={() => void check()}><Text style={styles.checkText}>Проверить ожидающий платёж</Text></TouchableOpacity><View style={styles.secure}><Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} /><Text style={styles.secureText}>Безопасная оплата. Платёжные данные защищены.</Text></View></ScrollView>}</SafeAreaView>;
 }
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <CardLight style={styles.metric}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </CardLight>
-  );
-}
-
-const styles = StyleSheet.create({
-  root: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: 40 },
-  title: { ...typography.title, fontSize: 26, marginBottom: 18 },
-  balanceCard: { backgroundColor: "#D9F36B", borderWidth: 0, marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: "700", color: colors.neutral700, marginBottom: 8 },
-  balance: { fontSize: 38, fontWeight: "800", color: colors.black, marginBottom: 8 },
-  sub: { fontSize: 14, fontWeight: "700", color: colors.neutral700 },
-  grid: { flexDirection: "row", gap: 12, marginBottom: 14 },
-  metric: { flex: 1, backgroundColor: colors.lavender50, borderWidth: 0 },
-  metricValue: { fontSize: 20, fontWeight: "800", color: colors.black },
-  metricLabel: { fontSize: 12, color: colors.neutral500, marginTop: 4 },
-  depositCard: { marginBottom: 14 },
-  cardTitle: { fontSize: 18, fontWeight: "800", color: colors.black },
-  input: {
-    minHeight: 52,
-    marginTop: 14,
-    borderRadius: radii.lg,
-    backgroundColor: colors.neutral100,
-    paddingHorizontal: 16,
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.black,
-    marginBottom: 12,
-  },
-  secondaryAction: { marginTop: 10 },
-});
+function Metric({ label, value }: { label: string; value: string }) { return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>; }
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.white }, header: { height: 58, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.md }, icon: { width: 42, height: 42, alignItems: "center", justifyContent: "center" }, headerTitle: { ...typography.section }, loader: { marginTop: 100 }, content: { padding: spacing.lg, paddingBottom: 40 }, balanceCard: { backgroundColor: colors.accentSoft, borderRadius: radius.xl, padding: spacing.xl }, balanceLabel: { ...typography.secondary, color: colors.textSecondary }, balance: { fontSize: 34, lineHeight: 42, fontWeight: "600", color: colors.textPrimary, marginTop: spacing.xs }, history: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, marginTop: spacing.md }, historyText: { ...typography.secondary, color: colors.textPrimary }, quota: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }, metric: { flex: 1, backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg, padding: spacing.md }, metricValue: { ...typography.section }, metricLabel: { ...typography.meta, color: colors.textSecondary, marginTop: 2 }, section: { ...typography.section, marginTop: spacing.xl, marginBottom: spacing.sm }, amounts: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }, amount: { width: "48%", height: 52, borderRadius: radius.lg, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }, amountActive: { backgroundColor: colors.accent }, amountText: { ...typography.bodyMedium }, customInput: { ...typography.body, width: "100%", textAlign: "center", color: colors.textPrimary }, payment: { flexDirection: "row", alignItems: "center", padding: spacing.md, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg }, paymentIcon: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surfaceSecondary, alignItems: "center", justifyContent: "center" }, paymentCopy: { flex: 1, marginLeft: spacing.md }, paymentTitle: { ...typography.bodyMedium }, paymentText: { ...typography.meta, color: colors.textSecondary }, total: { flexDirection: "row", justifyContent: "space-between", marginTop: spacing.xl, padding: spacing.lg, backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg }, totalRight: { alignItems: "flex-end" }, totalLabel: { ...typography.secondary, color: colors.textSecondary, marginBottom: spacing.sm }, totalTitle: { ...typography.bodyMedium }, totalValue: { ...typography.secondary, marginBottom: spacing.sm }, totalStrong: { ...typography.bodyMedium }, primary: { height: 54, borderRadius: radius.full, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center", marginTop: spacing.lg }, primaryText: { ...typography.button }, check: { alignItems: "center", padding: spacing.lg }, checkText: { ...typography.secondary, color: colors.textSecondary }, secure: { flexDirection: "row", justifyContent: "center", gap: spacing.sm }, secureText: { ...typography.meta, color: colors.textSecondary } });
